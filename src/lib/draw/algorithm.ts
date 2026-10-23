@@ -296,7 +296,7 @@ export function validateAssignments(input: DrawInput, pairs: Pair[]): string[] {
 const list = (names: string[]) =>
   names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}`;
 
-/** Messaggio comprensibile per l'amministratore. */
+/** Messaggio comprensibile per l'organizzatore. */
 export function describeProblem(problem: FeasibilityProblem): string {
   switch (problem.kind) {
     case "too_few":

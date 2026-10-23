@@ -7,7 +7,8 @@ Lo stato viene aggiornato **solo dopo una verifica reale** (comando eseguito, te
 
 - **Next.js 16 (App Router, TypeScript) + Tailwind CSS 4**, nessun backend separato.
 - **Supabase**: PostgreSQL + Auth (solo amministratori) + Storage (foto, bucket pubblico con nomi casuali non indovinabili).
-- **Nessuna chiave `service_role` necessaria**: le operazioni amministrative usano la sessione dell'admin + RLS; le operazioni dei partecipanti passano da funzioni PostgreSQL `SECURITY DEFINER` che richiedono il token personale.
+- **Account organizzatore self-service** (dal 2026-10-24): chiunque si registra dal sito e vede solo i propri eventi (`events.created_by` + `owns_event()` in RLS e funzioni).
+- **Nessuna chiave `service_role` necessaria**: le operazioni dell'organizzatore usano la sua sessione + RLS; le operazioni dei partecipanti passano da funzioni PostgreSQL `SECURITY DEFINER` che richiedono il token personale.
 - **Link personale** nel formato `https://<sito>/p#<token>`: il token (256 bit casuali) sta nel frammento dell'URL, quindi non finisce nei log HTTP né nell'header Referer; viene inviato al server solo nel corpo di una richiesta POST.
 - **Rivelazione lato server**: il destinatario viene richiesto al server solo quando il partecipante preme "Rivela" e solo se l'evento è `PUBLISHED`/`CLOSED`.
 - **Algoritmo**: verifica di fattibilità con matching bipartito (diagnosi via teorema di Hall) + backtracking casuale con euristica MRV; il database rivalida l'estrazione in una transazione atomica.
@@ -334,13 +335,24 @@ Lo stato viene aggiornato **solo dopo una verifica reale** (comando eseguito, te
   - [DONE] Banner con citazione casuale e pulsante "Un'altra citazione" su `/iscrizione` e `/p`.
 - **Criteri di completamento:** banner visibile su desktop e smartphone; il pulsante cambia sempre citazione (test unitario ed E2E).
 
-## TASK-034 — Nuova migrazione e deploy in produzione
+## TASK-034 — Nuove migrazioni e deploy in produzione
 - **Stato:** BLOCKED
-- **Dipendenze:** TASK-030 … TASK-033
+- **Dipendenze:** TASK-030 … TASK-033, TASK-035
 - **Sotto-task:**
-  - [BLOCKED] Eseguire `supabase/migrations/20261023120000_signup_link.sql` nell'SQL Editor del progetto Supabase.
-  - [BLOCKED] `git push` su `main` (Vercel ridistribuisce) e prova di un'iscrizione sul sito pubblicato.
+  - [BLOCKED] Eseguire nell'SQL Editor, in ordine, `20261023120000_signup_link.sql` e `20261024120000_organizer_accounts.sql`.
+  - [BLOCKED] Supabase → Authentication: attivare *Allow new users to sign up*, disattivare *Confirm email*.
+  - [BLOCKED] `git push` su `main` (Vercel ridistribuisce); prova di registrazione e di iscrizione sul sito pubblicato.
 - **Motivo del blocco:** richiede l'accesso dell'utente a Supabase e il push sul repository personale. La migrazione va eseguita **prima** del push, altrimenti la nuova versione del sito chiama funzioni che non esistono ancora.
+
+## TASK-035 — Account organizzatore self-service
+- **Stato:** DONE
+- **Dipendenze:** TASK-005, TASK-006, TASK-012
+- **Sotto-task:**
+  - [DONE] Migrazione `20261024120000_organizer_accounts.sql`: `owns_event()`/`owns_photo_path()`, policy `*_owner_*` su tabelle e Storage, funzioni amministrative con controllo di proprietà, FK `created_by` in cascata, limiti 20 eventi/organizzatore e 100 partecipanti/evento, `delete_my_account()`.
+  - [DONE] Pagina `/admin/registrati` (registrazione senza conferma email, errori tradotti), login senza controllo admin, link da home e login.
+  - [DONE] Pagina `/admin/account`: cambio password (con verifica di quella attuale) ed eliminazione dell'account (digitando la propria email; rimuove anche le foto).
+  - [DONE] `supabase/config.toml`: registrazioni attive in locale, limite di frequenza alzato solo in locale per i test.
+- **Criteri di completamento:** due organizzatori non vedono né modificano nulla l'uno dell'altro (DB ed E2E); registrazione, cambio password ed eliminazione funzionano dal sito.
 
 ---
 
@@ -385,3 +397,19 @@ Problemi trovati e corretti durante le verifiche:
 Problemi trovati e corretti:
 - Il pulsante "Controlla di nuovo" nella pagina d'attesa risultava bianco su bianco (classi `bg-white`/`text-white` in conflitto) → classi dedicate.
 - Dopo il salvataggio del profilo il form mostrava per un attimo il nome precedente → il form si chiude e si ricarica il profilo.
+
+## Registro delle verifiche (account organizzatore — 2026-10-24)
+
+| Verifica | Comando | Esito |
+| --- | --- | --- |
+| Lint | `npm run lint` | ✅ nessun problema |
+| Type-check | `npm run typecheck` | ✅ nessun errore |
+| Test unitari | `npm test` | ✅ 112/112 (nuovo `tests/unit/accounts.test.ts`) |
+| Test di integrazione | `npm run test:integration` | ✅ 31/31 (isolamento tra organizzatori, limiti, eliminazione account; ogni test usa un organizzatore appena registrato) |
+| Test E2E desktop + smartphone | `npm run test:e2e` | ✅ 13/13 (registrazione, cambio password, eliminazione, isolamento; i flussi usano account nuovi creati dal sito) |
+| Build di produzione | `npm run build` | ✅ (`/admin/registrati`, `/admin/account`) |
+| Segreti nel bundle client | ricerca in `.next/static` | ✅ nessuna occorrenza |
+
+Problemi trovati e corretti:
+- Il limite di 20 eventi faceva fallire i test che creavano tutto con lo stesso account → ogni test registra un organizzatore nuovo.
+- Nei test E2E il login partiva prima che il logout fosse completato → attesa esplicita del reindirizzamento.

@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Aggiorna la sessione Supabase (refresh dei token nei cookie) per l'area admin
- * e reindirizza al login chi non è autenticato. Il controllo del ruolo admin
- * avviene comunque lato server in ogni pagina e azione (requireAdmin) e nel DB (RLS).
+ * e reindirizza al login chi non è autenticato. L'autenticazione è verificata
+ * comunque in ogni pagina e azione (requireAdmin) e i dati sono isolati nel DB (RLS).
  */
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -27,9 +27,10 @@ export async function proxy(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getClaims();
-  const isLoginPage = request.nextUrl.pathname === "/admin/login";
+  // Pagine raggiungibili senza account: accesso e creazione di un nuovo account.
+  const isPublicPage = ["/admin/login", "/admin/registrati"].includes(request.nextUrl.pathname);
 
-  if (!data?.claims && !isLoginPage) {
+  if (!data?.claims && !isPublicPage) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/admin/login";
     loginUrl.search = "";

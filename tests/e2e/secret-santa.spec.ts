@@ -6,7 +6,8 @@ import {
   createEvent,
   login,
   loginAsAdmin,
-  NON_ADMIN,
+  OTHER_ORGANIZER,
+  registerOrganizer,
   participantCard,
   personalLink,
   TINY_PNG,
@@ -29,19 +30,76 @@ test.describe("protezione dell'area amministrativa", () => {
     await expect(page.getByRole("alert").filter({ hasText: "Email o password non corretti" })).toBeVisible();
   });
 
-  test("un utente autenticato ma non amministratore non entra", async ({ page }) => {
-    await login(page, NON_ADMIN);
-    await expect(page.getByRole("alert").filter({ hasText: "non è autorizzato" })).toBeVisible();
-    await page.goto("/admin");
-    await expect(page).toHaveURL(/\/admin\/login/);
+  test("ogni organizzatore vede solo i propri eventi", async ({ page }) => {
+    await registerOrganizer(page);
+    const mine = uniqueName("Solo mio");
+    await createEvent(page, mine);
+    const eventUrl = page.url();
+    await page.getByRole("button", { name: "Esci" }).click();
+    await expect(page).toHaveURL(/\/admin\/login$/);
+
+    await login(page, OTHER_ORGANIZER);
+    await expect(page.getByRole("heading", { name: "I tuoi Secret Santa" })).toBeVisible();
+    await expect(page.getByText(mine)).toHaveCount(0);
+    // Anche aprendo direttamente l'indirizzo dell'evento non si vede nulla
+    await page.goto(eventUrl);
+    await expect(page.getByRole("heading", { name: mine })).toHaveCount(0);
   });
 
-  test("login e logout dell'amministratore", async ({ page }) => {
+  test("login e logout dell'organizzatore", async ({ page }) => {
     await loginAsAdmin(page);
     await page.getByRole("button", { name: "Esci" }).click();
     await expect(page).toHaveURL(/\/admin\/login$/);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/admin\/login$/);
+  });
+
+  test("account: registrazione, cambio password ed eliminazione", async ({ page }) => {
+    // Dalla home si arriva alla registrazione; un'email già usata viene segnalata
+    await page.goto("/");
+    await page.getByRole("link", { name: "Crea un account" }).click();
+    await expect(page.getByRole("heading", { name: "Crea il tuo account" })).toBeVisible();
+    const form = page.getByTestId("register-form");
+    await form.getByLabel("Email").fill("admin@example.com");
+    await form.getByLabel("Password", { exact: true }).fill("password-di-prova-123");
+    await form.getByLabel("Ripeti la password").fill("password-di-prova-123");
+    await form.getByRole("button", { name: "Crea l'account" }).click();
+    await expect(form.getByRole("alert")).toContainText("Esiste già un account con questa email");
+
+    const { email, password } = await registerOrganizer(page);
+    await expect(page.getByText("Nessun evento ancora.")).toBeVisible();
+
+    // Cambio password: quella attuale sbagliata viene rifiutata
+    await page.getByRole("link", { name: "Account" }).click();
+    const change = page.getByTestId("change-password-form");
+    await change.getByLabel("Password attuale").fill("sbagliata-123");
+    await change.getByLabel("Nuova password", { exact: true }).fill("nuova-password-456");
+    await change.getByLabel("Ripeti la nuova password").fill("nuova-password-456");
+    await change.getByRole("button", { name: "Cambia password" }).click();
+    await expect(change.getByRole("alert")).toContainText("La password attuale non è corretta");
+    await change.getByLabel("Password attuale").fill(password);
+    await change.getByRole("button", { name: "Cambia password" }).click();
+    await expect(change.getByRole("status")).toContainText("Password aggiornata");
+
+    await page.getByRole("button", { name: "Esci" }).click();
+    await expect(page).toHaveURL(/\/admin\/login$/);
+    await login(page, { email, password });
+    await expect(page.getByRole("alert").filter({ hasText: "Email o password non corretti" })).toBeVisible();
+    await login(page, { email, password: "nuova-password-456" });
+    await expect(page.getByRole("heading", { name: "I tuoi Secret Santa" })).toBeVisible();
+
+    // Eliminazione dell'account (con i suoi eventi)
+    await createEvent(page, uniqueName("Da cancellare"));
+    await page.getByRole("link", { name: "Account" }).click();
+    const remove = page.getByTestId("delete-account-form");
+    await remove.getByLabel(/Per confermare scrivi la tua email/).fill("altra@example.com");
+    await remove.getByRole("button", { name: /Elimina account/ }).click();
+    await expect(remove.getByRole("alert")).toContainText("scrivi esattamente l'email");
+    await remove.getByLabel(/Per confermare scrivi la tua email/).fill(email);
+    await remove.getByRole("button", { name: /Elimina account/ }).click();
+    await expect(page.getByText("Il tuo account e tutti i tuoi eventi sono stati cancellati")).toBeVisible();
+    await login(page, { email, password: "nuova-password-456" });
+    await expect(page.getByRole("alert").filter({ hasText: "Email o password non corretti" })).toBeVisible();
   });
 });
 
@@ -62,7 +120,7 @@ test("flusso completo: configurazione, estrazione segreta, pubblicazione e rivel
   const [ottavia, gualtiero, ermenegilda, fortunato] = names;
   const eventName = uniqueName("Natale E2E");
 
-  await loginAsAdmin(page);
+  await registerOrganizer(page);
   await createEvent(page, eventName);
 
   // Partecipanti
@@ -201,7 +259,7 @@ test("flusso completo: configurazione, estrazione segreta, pubblicazione e rivel
 test("estrazione impossibile: diagnosi chiara e nessun salvataggio", async ({ page }) => {
   const suffix = Date.now().toString(36).slice(-4);
   const [a, b, c] = [`Primo ${suffix}`, `Secondo ${suffix}`, `Terzo ${suffix}`];
-  await loginAsAdmin(page);
+  await registerOrganizer(page);
   await createEvent(page, uniqueName("Impossibile"));
 
   await addParticipant(page, a);
@@ -234,7 +292,7 @@ test("annullamento sicuro di un'estrazione pubblicata e nuova estrazione", async
   const suffix = Date.now().toString(36).slice(-4);
   const eventName = uniqueName("Rifacciamo");
   const people = [`Uno ${suffix}`, `Due ${suffix}`, `Tre ${suffix}`];
-  await loginAsAdmin(page);
+  await registerOrganizer(page);
   await createEvent(page, eventName);
   for (const name of people) await addParticipant(page, name);
   const link = await personalLink(page, people[0]);
@@ -269,7 +327,7 @@ test("invio automatico delle email (SMTP locale Mailpit): un messaggio per perso
   const people = [`Posta ${suffix}`, `Lettera ${suffix}`, `Senzamail ${suffix}`];
   const emails = [`posta.${suffix}@example.com`, `lettera.${suffix}@example.com`];
 
-  await loginAsAdmin(page);
+  await registerOrganizer(page);
   await createEvent(page, uniqueName("Email"));
   await addParticipant(page, people[0], emails[0]);
   await addParticipant(page, people[1], emails[1]);

@@ -12,6 +12,9 @@ export const LIMITS = {
   participantName: 60,
   email: 254,
   photoBytes: 2 * 1024 * 1024,
+  passwordMin: 8,
+  // Supabase Auth (bcrypt) considera al massimo 72 byte.
+  passwordMax: 72,
 } as const;
 
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -31,6 +34,11 @@ export const uuidSchema = z.uuid("Identificativo non valido.");
 export const tokenSchema = z
   .string()
   .regex(/^[A-Za-z0-9_-]{43}$/, "Link personale non valido.");
+
+export const passwordSchema = z
+  .string()
+  .min(LIMITS.passwordMin, `La password deve avere almeno ${LIMITS.passwordMin} caratteri.`)
+  .max(LIMITS.passwordMax, `La password può avere al massimo ${LIMITS.passwordMax} caratteri.`);
 
 export const eventSchema = z.object({
   name: z

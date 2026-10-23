@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 export const ADMIN = { email: "admin@example.com", password: "password-locale-123" };
-export const NON_ADMIN = { email: "utente@example.com", password: "password-locale-123" };
+export const OTHER_ORGANIZER = { email: "utente@example.com", password: "password-locale-123" };
 
 /** PNG 1×1 valido, usato come fotografia di prova. */
 export const TINY_PNG = Buffer.from(
@@ -19,6 +19,22 @@ export async function login(page: Page, credentials = ADMIN) {
 export async function loginAsAdmin(page: Page) {
   await login(page);
   await expect(page.getByRole("heading", { name: "I tuoi Secret Santa" })).toBeVisible();
+}
+
+/**
+ * Crea un nuovo account organizzatore dal sito e resta collegato. Ogni test usa
+ * il proprio account: parte senza eventi e non raggiunge il limite di 20 eventi.
+ */
+export async function registerOrganizer(page: Page, password = "password-di-prova-123") {
+  const email = `organizzatore.${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 8)}@example.com`;
+  await page.goto("/admin/registrati");
+  const form = page.getByTestId("register-form");
+  await form.getByLabel("Email").fill(email);
+  await form.getByLabel("Password", { exact: true }).fill(password);
+  await form.getByLabel("Ripeti la password").fill(password);
+  await form.getByRole("button", { name: "Crea l'account" }).click();
+  await expect(page.getByRole("heading", { name: "I tuoi Secret Santa" })).toBeVisible();
+  return { email, password };
 }
 
 export function uniqueName(prefix: string) {

@@ -56,15 +56,10 @@ describe("login", () => {
     expect(await login(null, credentials())).toMatchObject({ ok: false, error: expect.stringContaining("Troppi tentativi") });
   });
 
-  it("un utente non amministratore viene disconnesso subito", async () => {
+  it("qualsiasi organizzatore con credenziali valide entra nella propria area", async () => {
     const { signOut } = mockAuth({ isAdmin: false });
-    expect(await login(null, credentials())).toMatchObject({ ok: false, error: expect.stringContaining("non è autorizzato") });
-    expect(signOut).toHaveBeenCalled();
-  });
-
-  it("l'amministratore viene portato all'area admin", async () => {
-    mockAuth({});
     await expect(login(null, credentials())).rejects.toThrow("REDIRECT:/admin");
+    expect(signOut).not.toHaveBeenCalled();
   });
 
   it("configurazione mancante: messaggio chiaro", async () => {

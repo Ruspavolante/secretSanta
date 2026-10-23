@@ -167,11 +167,20 @@ isOneToOne: false
 "close_event":
 { Args: { "p_event_id": string }; Returns: undefined
                            },
+"delete_my_account":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "generate_invite_token":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"owns_event":
+{ Args: { "p_event_id": string }; Returns: boolean
+                           },
+"owns_photo_path":
+{ Args: { "p_name": string }; Returns: boolean
                            },
 "participant_mark_emailed":
 { Args: { "p_token": string }; Returns: undefined

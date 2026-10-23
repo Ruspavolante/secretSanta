@@ -18,7 +18,7 @@ riceve un **link personale** e scopre, con una piccola animazione, chi deve sorp
 3. [Avvio in locale](#avvio-in-locale)
 4. [Test e controlli](#test-e-controlli)
 5. [Creare il progetto Supabase (cloud)](#creare-il-progetto-supabase-cloud)
-6. [Creare il primo amministratore](#creare-il-primo-amministratore)
+6. [Account degli organizzatori](#account-degli-organizzatori)
 7. [Pubblicare su Vercel](#pubblicare-su-vercel)
 8. [Variabili d'ambiente](#variabili-dambiente)
 9. [Guida all'uso: organizzare un'estrazione](#guida-alluso-organizzare-unestrazione)
@@ -32,6 +32,8 @@ riceve un **link personale** e scopre, con una piccola animazione, chi deve sorp
 
 **Organizzatore (area `/admin`, protetta da Supabase Auth)**
 
+- **Account personale** creato dal sito (`/admin/registrati`, email e password, gratis): ogni organizzatore vede e gestisce
+  **solo i propri eventi**. Dalla pagina *Account* si cambia la password o si elimina l'account con tutti i suoi eventi.
 - Più eventi, ognuno con nome, budget, data dello scambio e messaggio per i partecipanti.
 - Partecipanti: aggiunta, modifica di nome/email/foto, immagine predefinita natalizia, eliminazione (solo prima dell'estrazione).
 - **Link d'iscrizione** da mandare nel gruppo (es. WhatsApp): ognuno si iscrive da solo con nome, email e foto facoltativa
@@ -67,15 +69,16 @@ riceve un **link personale** e scopre, con una piccola animazione, chi deve sorp
 
 | Aspetto | Soluzione |
 | --- | --- |
-| Area admin | Login Supabase Auth (email + password). Ogni pagina e ogni server action verifica il JWT e il ruolo leggendo la tabella `admins`. Registrazioni pubbliche disattivate. |
-| Database | Row Level Security su tutte le tabelle: solo gli amministratori leggono/scrivono. Il ruolo anonimo non ha alcun privilegio sulle tabelle. |
+| Area organizzatore | Login Supabase Auth (email + password); chiunque può creare un account dal sito. Ogni pagina e ogni server action verifica il JWT. |
+| Database | Row Level Security su tutte le tabelle: ogni organizzatore legge e modifica **solo i propri eventi** (e i relativi partecipanti, token, esclusioni, abbinamenti e foto), controllato nel database con `owns_event()`, non dall'app. Il ruolo anonimo non ha alcun privilegio sulle tabelle. |
+| Limiti anti-abuso | Registrazione aperta, quindi: massimo 20 eventi per organizzatore e 100 partecipanti per evento (imposti dal database), più i limiti di frequenza di Supabase Auth su registrazioni e accessi. |
 | Stato ed estrazione | Lo stato dell'evento, i token e gli abbinamenti **non** sono modificabili direttamente (permessi per colonna). Si cambiano solo con funzioni PostgreSQL transazionali (`save_draw`, `publish_event`, `close_event`, `reset_draw`) che rivalidano tutto e usano lock di riga contro le race condition. |
 | Modifiche pericolose | Dopo l'estrazione, trigger nel database impediscono di aggiungere/eliminare partecipanti o esclusioni finché l'estrazione non viene annullata. |
 | Partecipanti | Accedono solo tramite le funzioni `participant_status` e `participant_reveal`, che richiedono il token e **non restituiscono il destinatario prima della pubblicazione**. Il risultato non viene mai inviato al browser per poi essere nascosto: viene chiesto al server solo quando si preme "Scopri". |
 | Link d'iscrizione | Token separato (256 bit) che permette **solo** di iscriversi all'evento in preparazione: non mostra gli altri partecipanti, le loro email o i loro link. L'iscrizione restituisce solo il link del nuovo iscritto; un'email già iscritta riceve un messaggio, mai il link di qualcun altro. Massimo 100 partecipanti per evento. |
 | Token | 32 byte casuali (256 bit) generati da PostgreSQL, non indovinabili né derivabili da ID. Stanno nel frammento dell'URL (`/p#token`), quindi non arrivano nei log HTTP né negli header Referer; il server li riceve solo nel corpo di una richiesta POST e non li registra mai nei log. |
 | Chiavi | L'app usa solo la chiave **pubblica** (publishable/anon). La chiave `service_role`/secret **non serve** e non va configurata. |
-| Foto | Bucket Storage pubblico in sola lettura con nomi casuali non indovinabili; solo JPEG/PNG/WebP fino a 2 MB. Elenco dei file, sovrascrittura e cancellazione riservati all'admin. Chi si iscrive (ruolo anonimo) può solo **aggiungere** file `<evento>/<uuid>.<ext>` nella cartella di un evento in preparazione; il database accetta come foto solo file esistenti di quell'evento, non usati da altri. |
+| Foto | Bucket Storage pubblico in sola lettura con nomi casuali non indovinabili; solo JPEG/PNG/WebP fino a 2 MB. Elenco dei file, sovrascrittura e cancellazione riservati all'organizzatore dell'evento. Chi si iscrive (ruolo anonimo) può solo **aggiungere** file `<evento>/<uuid>.<ext>` nella cartella di un evento in preparazione; il database accetta come foto solo file esistenti di quell'evento, non usati da altri. |
 | Errori | Messaggi in italiano senza dettagli interni; nei log solo codice e messaggio dell'errore. |
 | Header | `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `noindex` su `/admin`, `/p` e `/iscrizione`. |
 
@@ -83,7 +86,7 @@ riceve un **link personale** e scopre, con una piccola animazione, chi deve sorp
 > equivalente a un account con password. Invia ogni link solo al diretto interessato; se un link finisce nelle mani
 > sbagliate usa **"Rigenera link"** (il vecchio smette di funzionare) e invia il nuovo invito.
 >
-> I token sono salvati in chiaro in una tabella leggibile solo dagli amministratori, così l'organizzatore può copiare di
+> I token sono salvati in chiaro in una tabella leggibile solo dall'organizzatore dell'evento, così l'organizzatore può copiare di
 > nuovo l'invito quando serve.
 
 ---
@@ -126,8 +129,8 @@ npm run dev               # http://localhost:3000
 
 | Utente | Password | Ruolo |
 | --- | --- | --- |
-| `admin@example.com` | `password-locale-123` | amministratore |
-| `utente@example.com` | `password-locale-123` | utente senza permessi (per i test di sicurezza) |
+| `admin@example.com` | `password-locale-123` | organizzatore, proprietario dell'evento demo |
+| `utente@example.com` | `password-locale-123` | secondo organizzatore senza eventi (per i test di isolamento) |
 
 Il seed crea anche l'evento dimostrativo *"Natale tra amici (demo)"* con 5 partecipanti ed esclusioni.
 Le email inviate in locale si leggono in Mailpit: <http://127.0.0.1:54324>.
@@ -162,25 +165,25 @@ Le email inviate in locale si leggono in Mailpit: <http://127.0.0.1:54324>.
      npx supabase db push                                  # applica supabase/migrations/*.sql (non il seed)
      ```
    - *Dalla dashboard:* SQL Editor → incolla ed esegui, **una alla volta e in quest'ordine**, i file di
-     `supabase/migrations/`: `20261021120000_secret_santa_schema.sql`, poi `20261023120000_signup_link.sql`.
-3. **Disattiva le registrazioni pubbliche:** Authentication → Sign In / Providers → disattiva *"Allow new users to sign up"*
-   (l'app non ne ha bisogno: gli admin si creano a mano). Anche se restassero attive, un utente registrato non
-   avrebbe alcun accesso perché non è nella tabella `admins`.
+     `supabase/migrations/`: `20261021120000_secret_santa_schema.sql`, `20261023120000_signup_link.sql`,
+     `20261024120000_organizer_accounts.sql`.
+3. **Registrazioni:** Authentication → Sign In / Providers → **attiva** *"Allow new users to sign up"* e, nella sezione
+   *Email*, **disattiva** *"Confirm email"*: gli organizzatori creano l'account dal sito e possono usarlo subito
+   (il mittente email predefinito di Supabase scrive solo ai membri del progetto, quindi le email di conferma non
+   arriverebbero agli altri).
 4. **Chiavi:** Project Settings → API Keys → copia la **Publishable key** (o la chiave legacy *anon*) e il **Project URL**.
    Non copiare la *secret key* / *service_role*: non serve.
 5. Il bucket `photos` e le sue policy vengono creati dalla migrazione: non serve configurare lo Storage a mano.
 
-## Creare il primo amministratore
+## Account degli organizzatori
 
-1. Supabase Dashboard → **Authentication → Users → Add user → Create new user**: inserisci email e password e spunta
-   *Auto Confirm User*.
-2. SQL Editor → esegui (sostituendo l'email):
-   ```sql
-   insert into public.admins (user_id)
-   select id from auth.users where email = 'tua.email@example.com';
-   ```
-3. Accedi da `https://<tuo-sito>/admin/login`. Per aggiungere altri organizzatori ripeti i due passaggi.
-   Per rimuovere un amministratore: `delete from public.admins where user_id = (select id from auth.users where email = '...');`
+- Chiunque crea il proprio account da `https://<tuo-sito>/admin/registrati` (link anche dalla home e dal login) e vede
+  solo i propri eventi. Non serve più aggiungere nessuno alla tabella `admins` (resta solo per compatibilità).
+- **Password dimenticata:** non c'è il recupero via email. Chi gestisce il progetto Supabase può reimpostarla da
+  Authentication → Users → (utente) → *Reset password* / *Send password recovery* oppure eliminare l'utente.
+- **Cambio password ed eliminazione dell'account:** dalla pagina *Account* dell'area organizzatore. Eliminando l'account
+  si cancellano anche tutti i suoi eventi e le foto.
+- Gli eventi creati prima dell'introduzione degli account restano del primo utente presente nella tabella `admins`.
 
 ---
 
@@ -311,7 +314,7 @@ Verificati a ottobre 2026 sulle pagine ufficiali ([Supabase pricing](https://sup
 | Funzionalità | Serve | Senza configurazione |
 | --- | --- | --- |
 | App online | Account Supabase + Vercel (gratuiti) | Funziona solo in locale |
-| Area admin | Utente creato in Supabase + riga in `admins` | Nessuno può accedere |
+| Area organizzatore | Registrazioni attive in Supabase (*Allow new users to sign up*, senza *Confirm email*) | Possono accedere solo gli utenti creati a mano nella dashboard |
 | Email automatiche | Credenziali SMTP (Gmail/Brevo gratuite) | Invio manuale (copia/WhatsApp/app email) |
 
 ---
@@ -327,8 +330,8 @@ src/
   app/
     page.tsx                              pagina iniziale
     p/page.tsx                            pagina del partecipante (/p#token)
-    admin/login/page.tsx                  login organizzatore
-    admin/(area)/…                        area protetta: eventi, dettaglio, abbinamenti
+    admin/login, admin/registrati         accesso e creazione dell'account organizzatore
+    admin/(area)/…                        area protetta: eventi, dettaglio, abbinamenti, account
   components/                             UI (tema, pulsanti, dialog, toast) e componenti admin/partecipante
   lib/
     draw/algorithm.ts                     algoritmo di estrazione e diagnosi

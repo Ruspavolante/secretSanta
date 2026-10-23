@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { addExclusion, clickAndConfirm, createEvent, loginAsAdmin, participantCard, TINY_PNG, uniqueName } from "./helpers";
+import { addExclusion, clickAndConfirm, createEvent, registerOrganizer, participantCard, TINY_PNG, uniqueName } from "./helpers";
 
 const MAILPIT = "http://127.0.0.1:54324";
 const shot = (page: Page, name: string) => page.screenshot({ path: `test-results/screens/${name}.png`, fullPage: true });
@@ -26,7 +26,7 @@ test("iscrizione dal link di gruppo: copertina, citazioni, email, modifica del p
   const eventName = uniqueName("Iscrizioni");
 
   // L'admin crea l'evento, carica la copertina e apre le iscrizioni
-  await loginAsAdmin(page);
+  await registerOrganizer(page);
   await createEvent(page, eventName);
   const cover = page.getByTestId("cover-panel");
   await cover.getByLabel("Carica una foto").setInputFiles({ name: "copertina.png", mimeType: "image/png", buffer: TINY_PNG });

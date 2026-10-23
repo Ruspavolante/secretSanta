@@ -20,6 +20,21 @@ export async function signedIn(email: string): Promise<Client> {
 export const adminClient = () => signedIn("admin@example.com");
 export const userClient = () => signedIn("utente@example.com");
 
+/**
+ * Registra un nuovo organizzatore (come dal sito) e restituisce il client con la
+ * sua sessione: ogni test parte da un account senza eventi (limite di 20 eventi).
+ */
+export async function newOrganizer(): Promise<Client> {
+  const client = newClient();
+  const { data, error } = await client.auth.signUp({
+    email: `organizzatore.${crypto.randomUUID()}@example.com`,
+    password: "password-di-prova-123",
+  });
+  if (error) throw error;
+  if (!data.session) throw new Error("Registrazione senza sessione: disattiva la conferma email in supabase/config.toml");
+  return client;
+}
+
 export type Fixture = { eventId: string; ids: Record<string, string>; tokens: Record<string, string> };
 
 /** Crea un evento con i partecipanti indicati (come admin) e ne restituisce id e token. */

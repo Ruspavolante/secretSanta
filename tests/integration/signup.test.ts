@@ -1,14 +1,18 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { adminClient, createFixture, newClient, pairs, userClient, type Client } from "./helpers";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { createFixture, newClient, newOrganizer, pairs, userClient, type Client } from "./helpers";
 
 let admin: Client;
 let user: Client;
 let anon: Client;
 
 beforeAll(async () => {
-  admin = await adminClient();
   user = await userClient();
   anon = newClient();
+});
+
+// Ogni test usa un organizzatore appena registrato (proprietario dei propri eventi).
+beforeEach(async () => {
+  admin = await newOrganizer();
 });
 
 const png = Buffer.from(

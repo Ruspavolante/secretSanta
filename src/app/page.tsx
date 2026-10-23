@@ -1,16 +1,24 @@
 import Link from "next/link";
-import { buttonClasses, Snowfall } from "@/components/ui";
+import { Alert, buttonClasses, Snowfall } from "@/components/ui";
 
 const STEPS = [
-  { icon: "👥", title: "Aggiungi gli amici", text: "Nome, email facoltativa e una foto (o un'immagine natalizia)." },
-  { icon: "🚫", title: "Imposta le esclusioni", text: "Le coppie che non devono pescarsi, in una o entrambe le direzioni." },
-  { icon: "🎲", title: "Estrai in segreto", text: "Un algoritmo garantisce un abbinamento valido per tutti." },
-  { icon: "📨", title: "Invia i link personali", text: "Via email, WhatsApp o copiando il messaggio pronto." },
+  { icon: "🔑", title: "Crea il tuo account", text: "Gratis, con email e password: vedi e gestisci solo i tuoi eventi." },
+  { icon: "👥", title: "Invita gli amici", text: "Condividi il link d'iscrizione nel gruppo oppure aggiungili tu, con foto." },
+  { icon: "🚫", title: "Esclusioni ed estrazione", text: "Le coppie non si pescano; l'algoritmo trova un abbinamento valido in segreto." },
+  { icon: "🎁", title: "Ognuno scopre il suo", text: "Quando pubblichi, ogni link personale rivela a chi fare il regalo." },
 ];
 
-export default function HomePage() {
+export default async function HomePage({ searchParams }: PageProps<"/">) {
+  const { account } = await searchParams;
   return (
     <main className="flex flex-1 flex-col">
+      {account === "eliminato" ? (
+        <div className="mx-auto w-full max-w-5xl px-4 pt-4">
+          <Alert tone="success" title="Account eliminato">
+            Il tuo account e tutti i tuoi eventi sono stati cancellati.
+          </Alert>
+        </div>
+      ) : null}
       <section className="relative isolate overflow-hidden bg-pine-900 text-white">
         <Snowfall />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 pt-20 pb-24 text-center sm:pt-28">
@@ -25,8 +33,14 @@ export default function HomePage() {
             sorprendere, con tanto di foto.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Link href="/admin" className={buttonClasses("gold", "lg")}>
-              Area organizzatore
+            <Link href="/admin/registrati" className={buttonClasses("gold", "lg")}>
+              Crea un account
+            </Link>
+            <Link
+              href="/admin"
+              className="inline-flex items-center justify-center rounded-full px-7 py-3.5 text-base font-semibold text-white ring-1 ring-white/40 transition-colors hover:bg-white/10"
+            >
+              Accedi
             </Link>
           </div>
           <p className="mt-6 max-w-md text-sm text-pine-200">

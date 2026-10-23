@@ -14,6 +14,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           </Link>
           <div className="flex items-center gap-3 text-sm">
             {email ? <span className="hidden text-pine-200 md:inline">{email}</span> : null}
+            <Link
+              href="/admin/account"
+              className="rounded-full px-3 py-1.5 font-medium hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-gold-300"
+            >
+              Account
+            </Link>
             <form action={logout}>
               <button
                 type="submit"

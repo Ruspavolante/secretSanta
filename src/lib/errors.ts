@@ -22,6 +22,8 @@ const APP_ERRORS: Record<string, string> = {
   SS_SIGNUP_CLOSED: "Le iscrizioni sono chiuse. Se vuoi partecipare chiedi all'organizzatore.",
   SS_SIGNUP_FULL: "È stato raggiunto il numero massimo di partecipanti (100).",
   SS_PHOTO_INVALID: "La foto non è stata caricata correttamente: riprova.",
+  SS_TOO_MANY_EVENTS: "Hai raggiunto il massimo di 20 eventi: elimina quelli vecchi per crearne di nuovi.",
+  SS_EVENT_FULL: "Questo evento ha già 100 partecipanti, il massimo consentito.",
 };
 
 const UNIQUE_CONSTRAINTS: Record<string, string> = {
@@ -58,6 +60,26 @@ export function dbErrorMessage(error: DbError): string {
     default:
       return GENERIC_ERROR;
   }
+}
+
+export type AuthError = { status?: number; code?: string; message?: string };
+
+/** Errori comuni di Supabase Auth tradotti per l'utente (mai dettagli interni). */
+export function authErrorMessage(error: AuthError, context: string): string {
+  if (error.status === 429) return "Troppi tentativi. Attendi qualche minuto e riprova.";
+  if (error.code === "user_already_exists" || error.code === "email_exists") {
+    return "Esiste già un account con questa email: accedi.";
+  }
+  if (error.code === "weak_password") return "Password troppo debole: usane una più lunga o meno prevedibile.";
+  if (error.code === "same_password") return "La nuova password è uguale a quella attuale.";
+  if (error.code === "signup_disabled") {
+    return "La creazione di nuovi account non è attiva su questo sito. Chiedi a chi lo gestisce.";
+  }
+  if (error.code === "email_address_invalid") return "Questo indirizzo email non è accettato: usane un altro.";
+  logServerError(context, error);
+  // Nessuno stato HTTP = servizio irraggiungibile (es. progetto Supabase in pausa).
+  if (!error.status || error.status >= 500) return "Servizio di autenticazione non disponibile. Riprova tra poco.";
+  return "Operazione non riuscita. Controlla i dati e riprova.";
 }
 
 /**

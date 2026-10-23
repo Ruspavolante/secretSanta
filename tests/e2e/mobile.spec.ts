@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { addParticipant, clickAndConfirm, createEvent, loginAsAdmin, personalLink, uniqueName } from "./helpers";
+import { addParticipant, clickAndConfirm, createEvent, registerOrganizer, personalLink, uniqueName } from "./helpers";
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -13,8 +13,10 @@ test("smartphone: pagine pubbliche, area admin e rivelazione senza scroll orizzo
 
   await page.goto("/admin/login");
   await expectNoHorizontalScroll(page);
+  await page.goto("/admin/registrati");
+  await expectNoHorizontalScroll(page);
 
-  await loginAsAdmin(page);
+  await registerOrganizer(page);
   await expectNoHorizontalScroll(page);
 
   const suffix = Date.now().toString(36).slice(-4);

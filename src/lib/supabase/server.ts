@@ -6,7 +6,7 @@ import type { Database } from "@/lib/supabase/database.types";
 
 /**
  * Client Supabase legato alla sessione dell'utente (cookie). Le query sono
- * soggette a RLS: un utente non amministratore non legge né modifica nulla.
+ * soggette a RLS: ogni organizzatore legge e modifica solo i propri eventi.
  */
 export async function createSupabaseServerClient() {
   const { url, key } = getSupabaseConfig();
