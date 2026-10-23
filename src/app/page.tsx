@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HeroGift } from "@/components/hero-gift";
 import { Alert, buttonClasses, Snowfall } from "@/components/ui";
 
 const STEPS = [
@@ -22,15 +23,13 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       <section className="relative isolate overflow-hidden bg-pine-900 text-white">
         <Snowfall />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 pt-20 pb-24 text-center sm:pt-28">
-          <p className="animate-float text-7xl" aria-hidden="true">
-            🎅
+          <HeroGift className="size-40 drop-shadow-[0_18px_30px_rgb(0_0_0/0.35)] sm:size-52" />
+          <h1 className="mt-4 font-display text-5xl font-extrabold tracking-tight sm:text-7xl">Secret Santa</h1>
+          <p className="mt-3 font-display text-lg text-gold-300 italic sm:text-xl">
+            Il modo più organizzato per regalare calzini a qualcuno che conosci a malapena.
           </p>
-          <h1 className="mt-6 font-display text-4xl font-extrabold tracking-tight sm:text-6xl">
-            Secret Santa <span className="text-gold-300">tra amici</span>
-          </h1>
           <p className="mt-5 max-w-2xl text-lg text-pine-100">
-            Organizza lo scambio dei regali senza bigliettini: ognuno riceve il suo link personale e scopre chi deve
-            sorprendere, con tanto di foto.
+            Organizza lo scambio dei regali: ognuno riceve il suo link personale e scopre a chi farà il regalo
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link href="/admin/registrati" className={buttonClasses("gold", "lg")}>

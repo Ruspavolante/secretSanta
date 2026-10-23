@@ -7,7 +7,7 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["latin"], weight: ["600", "700", "800"] });
 
 export const metadata: Metadata = {
-  title: { default: "Secret Santa tra amici", template: "%s · Secret Santa" },
+  title: { default: "Secret Santa", template: "%s · Secret Santa" },
   description: "Organizza il Secret Santa con i tuoi amici: estrazione, esclusioni e link personali.",
 };
 

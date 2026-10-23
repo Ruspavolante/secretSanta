@@ -79,7 +79,7 @@ export function ParticipantCard({
               size="sm"
               confirm={{
                 title: `Eliminare ${participant.name}?`,
-                body: "Verranno rimosse anche le sue esclusioni e la sua foto. L'operazione non si può annullare.",
+                body: "Verranno rimosse anche le sue esclusioni. L'operazione non si può annullare.",
                 confirmLabel: "Elimina",
                 tone: "danger",
               }}
