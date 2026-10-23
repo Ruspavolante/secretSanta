@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: securityHeaders },
       {
-        source: "/(admin|p)(.*)",
+        source: "/(admin|p|iscrizione)(.*)",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];

@@ -18,6 +18,10 @@ const APP_ERRORS: Record<string, string> = {
   SS_NOT_FOUND: "Elemento non trovato: potrebbe essere stato eliminato.",
   SS_FORBIDDEN: "Non hai i permessi per questa operazione.",
   SS_INVALID_INPUT: "Dati non validi.",
+  SS_SIGNUP_INVALID: "Questo link d'iscrizione non è valido o è stato sostituito: chiedi all'organizzatore quello nuovo.",
+  SS_SIGNUP_CLOSED: "Le iscrizioni sono chiuse. Se vuoi partecipare chiedi all'organizzatore.",
+  SS_SIGNUP_FULL: "È stato raggiunto il numero massimo di partecipanti (100).",
+  SS_PHOTO_INVALID: "La foto non è stata caricata correttamente: riprova.",
 };
 
 const UNIQUE_CONSTRAINTS: Record<string, string> = {

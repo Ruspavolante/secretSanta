@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddParticipantForm } from "@/components/admin/add-participant-form";
+import { CoverPanel } from "@/components/admin/cover-panel";
 import { DrawPanel } from "@/components/admin/draw-panel";
 import { EventForm } from "@/components/admin/event-form";
 import { ExclusionsPanel } from "@/components/admin/exclusions-panel";
 import { ParticipantCard } from "@/components/admin/participant-card";
+import { SignupPanel } from "@/components/admin/signup-panel";
 import { ActionButton } from "@/components/buttons";
 import { Alert, Card, cx, SectionTitle, StatusBadge } from "@/components/ui";
 import { deleteEvent, updateEvent } from "@/lib/actions/events";
@@ -96,6 +98,26 @@ export default async function EventPage({ params }: PageProps<"/admin/eventi/[id
         />
       </Card>
 
+      <Card>
+        <SectionTitle
+          icon="🔗"
+          title="Link di iscrizione"
+          description="Un solo link per tutto il gruppo: ognuno si iscrive da solo con nome, email e foto."
+        />
+        <SignupPanel
+          event={{
+            id: event.id,
+            name: event.name,
+            status: event.status,
+            budget: event.budget,
+            exchangeDate: event.exchangeDate,
+            signupToken: event.signupToken,
+            signupOpen: event.signupOpen,
+          }}
+          baseUrl={baseUrl}
+        />
+      </Card>
+
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Card>
           <SectionTitle
@@ -138,7 +160,9 @@ export default async function EventPage({ params }: PageProps<"/admin/eventi/[id
           ) : null}
 
           {participants.length === 0 ? (
-            <p className="mt-6 text-center text-sm text-muted">Nessun partecipante ancora. Aggiungi il primo qui sopra!</p>
+            <p className="mt-6 text-center text-sm text-muted">
+              Nessun partecipante ancora. Aggiungi il primo qui sopra o condividi il link di iscrizione!
+            </p>
           ) : (
             <ul className="mt-5 space-y-3">
               {participants.map((participant) => (
@@ -165,6 +189,11 @@ export default async function EventPage({ params }: PageProps<"/admin/eventi/[id
               exclusions={exclusions}
               editable={isDraft}
             />
+          </Card>
+
+          <Card>
+            <SectionTitle icon="🖼️" title="Foto di copertina" description="La vedono tutti quando aprono i link di questo evento." />
+            <CoverPanel eventId={event.id} eventName={event.name} coverUrl={event.coverUrl} disabled={isClosed} />
           </Card>
 
           <Card>

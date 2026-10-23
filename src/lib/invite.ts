@@ -16,6 +16,11 @@ export function buildPersonalLink(baseUrl: string, token: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/p#${token}`;
 }
 
+/** Link d'iscrizione dell'evento, da condividere nel gruppo: anche qui il token sta nel frammento. */
+export function buildSignupLink(baseUrl: string, token: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/iscrizione#${token}`;
+}
+
 export function formatItalianDate(isoDate: string): string {
   const date = new Date(`${isoDate}T12:00:00Z`);
   if (Number.isNaN(date.getTime())) return isoDate;
@@ -35,6 +40,19 @@ export function buildInviteMessage(details: InviteDetails): string {
     `Apri il tuo link personale per scoprire chi dovrai sorprendere con il tuo regalo: ${details.link}`;
   const extra = extraLines(details);
   const footer = "Il link è solo tuo: non condividerlo con nessuno! 🤫";
+  return [intro, ...(extra.length ? ["", ...extra] : []), "", footer].join("\n");
+}
+
+export type SignupDetails = Omit<InviteDetails, "participantName">;
+
+/** Messaggio per il gruppo (es. WhatsApp): contiene solo il link d'iscrizione, mai link personali. */
+export function buildSignupMessage(details: SignupDetails): string {
+  const intro =
+    `Ciao a tutti! 🎅 Quest'anno facciamo il Secret Santa "${details.eventName}". ` +
+    `Iscriviti da qui con il tuo nome, la tua email e, se vuoi, una foto: ${details.link}`;
+  const extra = extraLines({ ...details, participantName: "" });
+  const footer =
+    "Dopo l'iscrizione riceverai per email il tuo link personale: lì scoprirai a chi fare il regalo quando sarà il momento. 🎁";
   return [intro, ...(extra.length ? ["", ...extra] : []), "", footer].join("\n");
 }
 

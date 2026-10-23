@@ -1,6 +1,7 @@
 # 🎅 Secret Santa tra amici
 
-Applicazione web gratuita per organizzare il Secret Santa: l'organizzatore aggiunge i partecipanti (con foto),
+Applicazione web gratuita per organizzare il Secret Santa: l'organizzatore aggiunge i partecipanti (con foto) oppure
+condivide un **link d'iscrizione** nel gruppo,
 imposta le esclusioni, fa l'estrazione in segreto, la verifica e la pubblica quando vuole. Ogni partecipante
 riceve un **link personale** e scopre, con una piccola animazione, chi deve sorprendere e la sua fotografia.
 
@@ -33,6 +34,9 @@ riceve un **link personale** e scopre, con una piccola animazione, chi deve sorp
 
 - Più eventi, ognuno con nome, budget, data dello scambio e messaggio per i partecipanti.
 - Partecipanti: aggiunta, modifica di nome/email/foto, immagine predefinita natalizia, eliminazione (solo prima dell'estrazione).
+- **Link d'iscrizione** da mandare nel gruppo (es. WhatsApp): ognuno si iscrive da solo con nome, email e foto facoltativa
+  e riceve subito per email il proprio link personale. Si apre, si chiude e si rigenera dall'evento; si chiude da solo con l'estrazione.
+- **Foto di copertina** dell'evento, mostrata a tutti nella pagina d'iscrizione e nei link personali.
 - Fotografie: caricamento con ridimensionamento automatico nel browser (max 800 px) e verifica del formato reale sul server.
 - Esclusioni in una direzione (A → B) o in entrambe (A ↔ B), con indicatore di fattibilità e diagnosi del problema.
 - Estrazione con algoritmo affidabile (matching bipartito + backtracking): nessuno regala a sé stesso, ognuno regala e riceve
@@ -43,9 +47,17 @@ riceve un **link personale** e scopre, con una piccola animazione, chi deve sorp
 - Inviti: link personale, messaggio pronto da copiare, apertura diretta di WhatsApp o dell'app email, rigenerazione del link,
   invio automatico via SMTP (facoltativo). Stato di ogni partecipante: invito copiato/inviato, link aperto, risultato visto.
 
+**Iscrizione (pagina `/iscrizione#<token>`)**
+
+- Copertina e dettagli dell'evento, modulo con nome, email (obbligatoria: serve per ricevere il link) e foto facoltativa.
+- Dopo l'iscrizione: link personale a schermo e, se l'invio automatico è configurato, anche via email.
+
 **Partecipante (pagina `/p#<token>`)**
 
-- Benvenuto con il proprio nome, dettagli dell'evento.
+- Benvenuto con il proprio nome, copertina e dettagli dell'evento.
+- Finché l'estrazione non è fatta può modificare da solo nome, immagine e foto ("I tuoi dati"); l'email la cambia solo l'organizzatore.
+- Banner "Pensieri sul donare": citazioni autentiche (con fonte) di politici, generali, avvocati e funzionari che col Natale
+  c'entrano poco, più qualche battuta di personaggi dichiaratamente immaginari. Il pulsante "Un'altra citazione" ne pesca un'altra.
 - Prima della pubblicazione: *"L'estrazione è pronta, ma Babbo Natale non ha ancora dato il via libera. Torna più tardi!"*
 - Dopo la pubblicazione: pulsante per aprire il pacco regalo animato, poi foto e nome della persona assegnata.
 
@@ -60,11 +72,12 @@ riceve un **link personale** e scopre, con una piccola animazione, chi deve sorp
 | Stato ed estrazione | Lo stato dell'evento, i token e gli abbinamenti **non** sono modificabili direttamente (permessi per colonna). Si cambiano solo con funzioni PostgreSQL transazionali (`save_draw`, `publish_event`, `close_event`, `reset_draw`) che rivalidano tutto e usano lock di riga contro le race condition. |
 | Modifiche pericolose | Dopo l'estrazione, trigger nel database impediscono di aggiungere/eliminare partecipanti o esclusioni finché l'estrazione non viene annullata. |
 | Partecipanti | Accedono solo tramite le funzioni `participant_status` e `participant_reveal`, che richiedono il token e **non restituiscono il destinatario prima della pubblicazione**. Il risultato non viene mai inviato al browser per poi essere nascosto: viene chiesto al server solo quando si preme "Scopri". |
+| Link d'iscrizione | Token separato (256 bit) che permette **solo** di iscriversi all'evento in preparazione: non mostra gli altri partecipanti, le loro email o i loro link. L'iscrizione restituisce solo il link del nuovo iscritto; un'email già iscritta riceve un messaggio, mai il link di qualcun altro. Massimo 100 partecipanti per evento. |
 | Token | 32 byte casuali (256 bit) generati da PostgreSQL, non indovinabili né derivabili da ID. Stanno nel frammento dell'URL (`/p#token`), quindi non arrivano nei log HTTP né negli header Referer; il server li riceve solo nel corpo di una richiesta POST e non li registra mai nei log. |
 | Chiavi | L'app usa solo la chiave **pubblica** (publishable/anon). La chiave `service_role`/secret **non serve** e non va configurata. |
-| Foto | Bucket Storage pubblico in sola lettura con nomi casuali non indovinabili; elenco dei file e scritture riservati all'admin; solo JPEG/PNG/WebP fino a 2 MB. |
+| Foto | Bucket Storage pubblico in sola lettura con nomi casuali non indovinabili; solo JPEG/PNG/WebP fino a 2 MB. Elenco dei file, sovrascrittura e cancellazione riservati all'admin. Chi si iscrive (ruolo anonimo) può solo **aggiungere** file `<evento>/<uuid>.<ext>` nella cartella di un evento in preparazione; il database accetta come foto solo file esistenti di quell'evento, non usati da altri. |
 | Errori | Messaggi in italiano senza dettagli interni; nei log solo codice e messaggio dell'errore. |
-| Header | `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `noindex` su `/admin` e `/p`. |
+| Header | `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `noindex` su `/admin`, `/p` e `/iscrizione`. |
 
 > ⚠️ **Il link personale è come una chiave:** chiunque lo possieda può vedere il risultato di quella persona. Non è
 > equivalente a un account con password. Invia ogni link solo al diretto interessato; se un link finisce nelle mani
@@ -148,8 +161,8 @@ Le email inviate in locale si leggono in Mailpit: <http://127.0.0.1:54324>.
      npx supabase link --project-ref <ref-del-progetto>   # il ref è nell'URL della dashboard
      npx supabase db push                                  # applica supabase/migrations/*.sql (non il seed)
      ```
-   - *Dalla dashboard:* SQL Editor → incolla ed esegui il contenuto di
-     `supabase/migrations/20261021120000_secret_santa_schema.sql`.
+   - *Dalla dashboard:* SQL Editor → incolla ed esegui, **una alla volta e in quest'ordine**, i file di
+     `supabase/migrations/`: `20261021120000_secret_santa_schema.sql`, poi `20261023120000_signup_link.sql`.
 3. **Disattiva le registrazioni pubbliche:** Authentication → Sign In / Providers → disattiva *"Allow new users to sign up"*
    (l'app non ne ha bisogno: gli admin si creano a mano). Anche se restassero attive, un utente registrato non
    avrebbe alcun accesso perché non è nella tabella `admins`.
@@ -194,6 +207,10 @@ Le email inviate in locale si leggono in Mailpit: <http://127.0.0.1:54324>.
 > I deploy di *anteprima* di Vercel sono protetti da login Vercel per impostazione predefinita: condividi con i
 > partecipanti solo l'URL di **produzione** (quello in `NEXT_PUBLIC_SITE_URL`).
 
+**Aggiornare un sito già pubblicato.** Se un aggiornamento aggiunge un file in `supabase/migrations/`, eseguilo
+nell'SQL Editor di Supabase **prima** del `git push`: altrimenti la nuova versione del sito cercherebbe tabelle o
+funzioni che non esistono ancora. Dopo ogni deploy ricarica le pagine dell'area admin rimaste aperte.
+
 ---
 
 ## Variabili d'ambiente
@@ -212,7 +229,9 @@ Vedi [`.env.example`](.env.example).
 ## Guida all'uso: organizzare un'estrazione
 
 1. **Crea l'evento** da `/admin`: nome, budget, data, messaggio facoltativo.
-2. **Aggiungi i partecipanti** (almeno 3). L'email serve solo per l'invio automatico.
+2. **Aggiungi i partecipanti** (almeno 3): a mano, oppure apri *Link di iscrizione*, premi *Copia messaggio per il gruppo*
+   (o *Apri WhatsApp*) e lascia che ognuno si iscriva da solo. Chi si iscrive compare subito nella lista.
+   Facoltativo: carica una *Foto di copertina* per l'evento.
 3. **Carica le fotografie:** su ogni partecipante → *Modifica* → *Carica una nuova foto* (JPEG, PNG o WebP; viene
    ridimensionata automaticamente). Senza foto viene mostrata l'immagine natalizia scelta.
 4. **Imposta le esclusioni:** *Chi regala… / …non può regalare a*, con la casella "entrambe le direzioni" per le coppie.

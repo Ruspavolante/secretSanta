@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { Spinner } from "@/components/buttons";
+import { EventCover } from "@/components/event-cover";
+import { ProfileEditor } from "@/components/participant/profile-editor";
+import { QuoteBanner } from "@/components/quote-banner";
 import { Avatar, buttonClasses, cx } from "@/components/ui";
 import {
   getParticipantView,
@@ -132,6 +135,7 @@ export function ParticipantExperience() {
 
   return (
     <Panel>
+      <EventCover url={view.coverUrl} eventName={view.eventName} />
       <div className="text-center">
         <p className="text-sm font-semibold tracking-[0.2em] text-gold-300 uppercase">{view.eventName}</p>
         <h1 className="mt-3 font-display text-4xl font-extrabold sm:text-5xl">Ciao {view.participantName}!</h1>
@@ -155,7 +159,7 @@ export function ParticipantExperience() {
             </p>
             <button
               type="button"
-              className={cx(buttonClasses("ghost", "sm"), "mt-5 border-white/30 bg-transparent text-white hover:bg-white/10")}
+              className="mt-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white ring-1 ring-white/30 transition-colors hover:bg-white/10 disabled:opacity-60"
               onClick={() => startRefresh(load)}
               disabled={refreshing}
             >
@@ -173,6 +177,10 @@ export function ParticipantExperience() {
           />
         )}
       </div>
+
+      {view.status === "DRAFT" ? <ProfileEditor token={readToken()} onSaved={() => void load()} /> : null}
+
+      <QuoteBanner className="mt-8" />
     </Panel>
   );
 }

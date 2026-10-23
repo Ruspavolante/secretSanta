@@ -27,61 +27,7 @@ import {
   updateParticipant,
   uploadParticipantPhoto,
 } from "@/lib/actions/participants";
-
-type Call = { table?: string; rpc?: string; args?: unknown; ops: { method: string; args: unknown[] }[] };
-type Result = { data?: unknown; error?: unknown; count?: number };
-
-/** Client Supabase finto: registra le chiamate e risponde tramite `handler`. */
-function fakeSupabase(handler: (call: Call) => Result = () => ({ data: null, error: null })) {
-  const calls: Call[] = [];
-  const builder = (call: Call) => {
-    const proxy: Record<string, unknown> = new Proxy(
-      {},
-      {
-        get(_target, prop: string) {
-          if (prop === "then") {
-            const result = { data: null, error: null, ...handler(call) };
-            return (resolve: (value: unknown) => unknown) => resolve(result);
-          }
-          return (...args: unknown[]) => {
-            call.ops.push({ method: prop, args });
-            return proxy;
-          };
-        },
-      },
-    );
-    return proxy;
-  };
-  const client = {
-    from(table: string) {
-      const call: Call = { table, ops: [] };
-      calls.push(call);
-      return builder(call);
-    },
-    rpc(name: string, args: unknown) {
-      const call: Call = { rpc: name, args, ops: [] };
-      calls.push(call);
-      return builder(call);
-    },
-    storage: {
-      from(bucket: string) {
-        return {
-          upload: async (...args: unknown[]) => {
-            const call: Call = { table: `storage:${bucket}`, ops: [{ method: "upload", args }] };
-            calls.push(call);
-            return { data: null, error: null, ...handler(call) };
-          },
-          remove: async (...args: unknown[]) => {
-            const call: Call = { table: `storage:${bucket}`, ops: [{ method: "remove", args }] };
-            calls.push(call);
-            return { data: null, error: null, ...handler(call) };
-          },
-        };
-      },
-    },
-  };
-  return { client, calls };
-}
+import { fakeSupabase, type Call, type Result } from "../support/fake-supabase";
 
 const EVENT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const P1 = "a0000000-0000-4000-8000-000000000001";

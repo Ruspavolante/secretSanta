@@ -71,14 +71,14 @@ isOneToOne: false
                   ]
                 },"events": {
                   Row: {
-                    "budget": string | null,"closed_at": string | null,"created_at": string,"created_by": string | null,"description": string | null,"drawn_at": string | null,"exchange_date": string | null,"id": string,"name": string,"published_at": string | null,"status": Database["public"]['Enums']["event_status"],"updated_at": string
+                    "budget": string | null,"closed_at": string | null,"cover_path": string | null,"created_at": string,"created_by": string | null,"description": string | null,"drawn_at": string | null,"exchange_date": string | null,"id": string,"name": string,"published_at": string | null,"signup_open": boolean,"signup_token": string | null,"status": Database["public"]['Enums']["event_status"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "budget"?: string | null,"closed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"drawn_at"?: string | null,"exchange_date"?: string | null,"id"?: string,"name": string,"published_at"?: string | null,"status"?: Database["public"]['Enums']["event_status"],"updated_at"?: string
+                    "budget"?: string | null,"closed_at"?: string | null,"cover_path"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"drawn_at"?: string | null,"exchange_date"?: string | null,"id"?: string,"name": string,"published_at"?: string | null,"signup_open"?: boolean,"signup_token"?: string | null,"status"?: Database["public"]['Enums']["event_status"],"updated_at"?: string
                   }
                   Update: {
-                    "budget"?: string | null,"closed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"drawn_at"?: string | null,"exchange_date"?: string | null,"id"?: string,"name"?: string,"published_at"?: string | null,"status"?: Database["public"]['Enums']["event_status"],"updated_at"?: string
+                    "budget"?: string | null,"closed_at"?: string | null,"cover_path"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"drawn_at"?: string | null,"exchange_date"?: string | null,"id"?: string,"name"?: string,"published_at"?: string | null,"signup_open"?: boolean,"signup_token"?: string | null,"status"?: Database["public"]['Enums']["event_status"],"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -161,7 +161,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "close_event":
+            "assert_photo_available":
+{ Args: { "p_event_id": string,"p_participant_id": string,"p_photo_path": string }; Returns: undefined
+                           },
+"close_event":
 { Args: { "p_event_id": string }; Returns: undefined
                            },
 "generate_invite_token":
@@ -170,6 +173,14 @@ isOneToOne: false
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"participant_mark_emailed":
+{ Args: { "p_token": string }; Returns: undefined
+                           },
+"participant_profile":
+{ Args: { "p_token": string }; Returns: {
+              "can_edit": boolean,"event_id": string,"participant_avatar": string,"participant_name": string,"participant_photo_path": string
+            }[]
+                           },
 "participant_reveal":
 { Args: { "p_token": string }; Returns: {
               "event_status": Database["public"]['Enums']["event_status"],"recipient_avatar": string,"recipient_name": string,"recipient_photo_path": string
@@ -177,8 +188,14 @@ isOneToOne: false
                            },
 "participant_status":
 { Args: { "p_token": string }; Returns: {
-              "event_budget": string,"event_description": string,"event_exchange_date": string,"event_name": string,"event_status": Database["public"]['Enums']["event_status"],"has_revealed": boolean,"participant_name": string
+              "event_budget": string,"event_cover_path": string,"event_description": string,"event_exchange_date": string,"event_name": string,"event_status": Database["public"]['Enums']["event_status"],"has_revealed": boolean,"participant_name": string
             }[]
+                           },
+"participant_update_profile":
+{ Args: { "p_avatar": string,"p_name": string,"p_photo_path"?: string,"p_remove_photo"?: boolean,"p_token": string }; Returns: undefined
+                           },
+"photo_upload_allowed":
+{ Args: { "p_name": string }; Returns: boolean
                            },
 "publish_event":
 { Args: { "p_event_id": string }; Returns: undefined
@@ -186,11 +203,25 @@ isOneToOne: false
 "regenerate_invite_token":
 { Args: { "p_participant_id": string }; Returns: string
                            },
+"regenerate_signup_token":
+{ Args: { "p_event_id": string }; Returns: string
+                           },
+"register_participant":
+{ Args: { "p_avatar": string,"p_email": string,"p_name": string,"p_photo_path"?: string,"p_token": string }; Returns: string
+                           },
 "reset_draw":
 { Args: { "p_confirmation"?: string,"p_event_id": string }; Returns: undefined
                            },
 "save_draw":
 { Args: { "p_event_id": string,"p_pairs": Json }; Returns: undefined
+                           },
+"set_signup_open":
+{ Args: { "p_event_id": string,"p_open": boolean }; Returns: string
+                           },
+"signup_info":
+{ Args: { "p_token": string }; Returns: {
+              "event_budget": string,"event_cover_path": string,"event_description": string,"event_exchange_date": string,"event_id": string,"event_name": string,"is_open": boolean
+            }[]
                            }
           }
           Enums: {

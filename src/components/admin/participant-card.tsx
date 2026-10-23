@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ActionForm } from "@/components/action-form";
 import { AvatarPicker } from "@/components/admin/avatar-picker";
 import { ActionButton, CopyButton, SubmitButton } from "@/components/buttons";
-import { Avatar, buttonClasses, Chip, cx, Field, inputClasses } from "@/components/ui";
+import { Avatar, buttonClasses, Chip, cx, Field, fileInputClasses, inputClasses } from "@/components/ui";
 import { markInviteCopied, regenerateInviteLink, sendInviteEmail } from "@/lib/actions/invites";
 import {
   deleteParticipant,
@@ -13,7 +13,7 @@ import {
   uploadParticipantPhoto,
 } from "@/lib/actions/participants";
 import type { AdminParticipant } from "@/lib/data";
-import { resizeImage } from "@/lib/image-resize";
+import { preparePhotoField } from "@/lib/image-resize";
 import { buildInviteMessage, buildInviteSubject, buildMailtoUrl, buildPersonalLink, buildWhatsAppUrl } from "@/lib/invite";
 import { LIMITS } from "@/lib/validation";
 
@@ -195,20 +195,7 @@ function InvitePanel({
   );
 }
 
-async function preparePhoto(formData: FormData): Promise<FormData | string> {
-  const file = formData.get("photo");
-  if (!(file instanceof File) || file.size === 0) return "Seleziona una fotografia.";
-  if (!file.type.startsWith("image/")) return "Il file selezionato non è un'immagine.";
-  try {
-    const resized = await resizeImage(file);
-    if (resized.size > LIMITS.photoBytes) return "La fotografia è troppo grande anche dopo il ridimensionamento.";
-    const prepared = new FormData();
-    prepared.set("photo", resized, "foto.jpg");
-    return prepared;
-  } catch {
-    return "Impossibile leggere questa immagine: prova con un file JPEG o PNG.";
-  }
-}
+const preparePhoto = (formData: FormData) => preparePhotoField(formData, { required: true });
 
 function EditPanel({ participant }: { participant: AdminParticipant }) {
   const prefix = `edit-${participant.id}`;
@@ -247,7 +234,7 @@ function EditPanel({ participant }: { participant: AdminParticipant }) {
               type="file"
               accept="image/jpeg,image/png,image/webp"
               required
-              className="block w-full text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-pine-100 file:px-4 file:py-2 file:font-semibold file:text-pine-800 hover:file:bg-pine-200"
+              className={fileInputClasses}
             />
           </Field>
           <SubmitButton size="sm" pendingLabel="Caricamento…">

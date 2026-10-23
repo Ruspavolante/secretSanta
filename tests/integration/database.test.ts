@@ -273,11 +273,13 @@ describe("storage delle fotografie", () => {
     "base64",
   );
 
-  it("solo l'admin può caricare ed eliminare foto", async () => {
+  it("solo l'admin può caricare ed eliminare foto (gli anonimi solo negli eventi in preparazione)", async () => {
     const f = await createFixture(admin, ["A", "B", "C"]);
     const path = `${f.eventId}/${crypto.randomUUID()}.png`;
 
-    expect((await anon.storage.from("photos").upload(path, png, { contentType: "image/png" })).error).not.toBeNull();
+    // Cartella di un evento inesistente: rifiutato anche per anon (vedi signup.test.ts per gli eventi DRAFT)
+    const ghost = `${crypto.randomUUID()}/${crypto.randomUUID()}.png`;
+    expect((await anon.storage.from("photos").upload(ghost, png, { contentType: "image/png" })).error).not.toBeNull();
     expect((await user.storage.from("photos").upload(path, png, { contentType: "image/png" })).error).not.toBeNull();
     expect((await admin.storage.from("photos").upload(path, png, { contentType: "image/png" })).error).toBeNull();
 

@@ -22,6 +22,7 @@ export function ActionForm({
   resetOnSuccess = false,
   toastOnSuccess = false,
   prepare,
+  onSuccess,
   testId,
 }: {
   action: (previous: ActionResult | null, formData: FormData) => Promise<ActionResult>;
@@ -31,6 +32,7 @@ export function ActionForm({
   toastOnSuccess?: boolean;
   /** Trasforma i dati prima dell'invio (es. ridimensionare una foto). Una stringa è un errore. */
   prepare?: (formData: FormData) => Promise<FormData | string>;
+  onSuccess?: () => void;
   testId?: string;
 }) {
   const [pending, startTransition] = useTransition();
@@ -54,6 +56,7 @@ export function ActionForm({
         if (outcome.ok) {
           if (toastOnSuccess && outcome.message) toast.success(outcome.message);
           if (resetOnSuccess) form.reset();
+          onSuccess?.();
         }
       } catch (error) {
         if (isNextRedirect(error)) throw error;

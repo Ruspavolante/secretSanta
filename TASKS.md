@@ -275,20 +275,22 @@ Lo stato viene aggiornato **solo dopo una verifica reale** (comando eseguito, te
 - **Criteri di completamento:** tutti i comandi passano; stato dei task aggiornato sulla base delle verifiche.
 
 ## TASK-027 — Progetto Supabase in cloud
-- **Stato:** BLOCKED
+- **Stato:** DONE (migrazione iniziale) — vedi TASK-034 per la nuova migrazione
 - **Dipendenze:** TASK-004 … TASK-008
 - **Sotto-task:**
-  - [BLOCKED] Creazione progetto Supabase Free, applicazione migrazioni (`supabase db push`), creazione primo admin.
+  - [DONE] Creazione progetto Supabase Free, migrazione iniziale applicata dall'utente nell'SQL Editor, primo admin creato.
 - **Criteri di completamento:** progetto raggiungibile e migrazioni applicate. Richiede l'account Supabase dell'utente.
-- **Motivo del blocco:** serve l'account Supabase del proprietario (login interattivo, scelta di regione e password del DB). Le migrazioni sono pronte e verificate in locale con lo stesso Postgres 17; la procedura passo-passo è nel README (*Creare il progetto Supabase*, *Creare il primo amministratore*).
+- **Verifica (2026-10-23):** l'utente accede all'area admin del sito pubblicato con il proprio account (sessione Supabase valida nelle intestazioni della richiesta condivise dall'utente).
+- **Motivo del blocco iniziale:** serve l'account Supabase del proprietario (login interattivo, scelta di regione e password del DB). Le migrazioni sono pronte e verificate in locale con lo stesso Postgres 17; la procedura passo-passo è nel README (*Creare il progetto Supabase*, *Creare il primo amministratore*).
 
 ## TASK-028 — Deploy su Vercel Hobby
-- **Stato:** BLOCKED
+- **Stato:** DONE
 - **Dipendenze:** TASK-027
 - **Sotto-task:**
-  - [BLOCKED] Import del repository su Vercel, variabili d'ambiente, deploy di produzione, URL pubblico.
+  - [DONE] Import del repository su Vercel, variabili d'ambiente, deploy di produzione, URL pubblico.
 - **Criteri di completamento:** app raggiungibile all'URL `*.vercel.app`. Richiede l'account Vercel dell'utente.
-- **Motivo del blocco:** dipende da TASK-027 e richiede l'account Vercel (e un repository Git remoto) del proprietario. `npm run build` passa; procedura nel README (*Pubblicare su Vercel*).
+- **Verifica (2026-10-23):** `https://secret-santa-rho-three.vercel.app/` risponde 200 (repository `Ruspavolante/secretSanta`).
+- **Motivo del blocco iniziale:** dipende da TASK-027 e richiede l'account Vercel (e un repository Git remoto) del proprietario. `npm run build` passa; procedura nel README (*Pubblicare su Vercel*).
 
 ## TASK-029 — SMTP reale per l'invio automatico
 - **Stato:** BLOCKED
@@ -297,6 +299,48 @@ Lo stato viene aggiornato **solo dopo una verifica reale** (comando eseguito, te
   - [BLOCKED] Configurare credenziali SMTP gratuite (es. Gmail con password per app) su Vercel.
 - **Criteri di completamento:** un'email di prova arriva a un indirizzo reale. Richiede credenziali dell'utente.
 - **Motivo del blocco:** servono credenziali SMTP personali (es. password per le app di Gmail). Alternativa gratuita già implementata e sempre attiva: invito manuale (copia messaggio, WhatsApp, app email). L'invio SMTP è verificato end-to-end in locale con Mailpit.
+
+## TASK-030 — Iscrizione dal link di gruppo
+- **Stato:** DONE
+- **Dipendenze:** TASK-004 … TASK-019
+- **Sotto-task:**
+  - [DONE] Migrazione `20261023120000_signup_link.sql`: `signup_token`/`signup_open` sugli eventi, funzioni `set_signup_open`, `regenerate_signup_token` (solo admin), `signup_info`, `register_participant` (anon con token d'iscrizione; restituisce solo il token del nuovo iscritto; max 100 partecipanti; solo in `DRAFT`).
+  - [DONE] Pagina pubblica `/iscrizione#<token>`: nome, email obbligatoria, foto facoltativa, immagine predefinita; messaggi per link non valido, iscrizioni chiuse, email o nome già usati (nessun reinvio di link altrui).
+  - [DONE] Dopo l'iscrizione: link personale a schermo + email automatica (se SMTP è configurato) segnata come inviata.
+  - [DONE] Riquadro admin "Link di iscrizione": apri/chiudi, copia messaggio per il gruppo, WhatsApp, rigenera.
+- **Criteri di completamento:** iscrizione end-to-end con email in Mailpit; iscrizioni chiuse dopo l'estrazione; il token d'iscrizione non apre alcun link personale.
+
+## TASK-031 — Modifica del profilo dal link personale
+- **Stato:** DONE
+- **Dipendenze:** TASK-030
+- **Sotto-task:**
+  - [DONE] Funzioni `participant_profile` e `participant_update_profile` (nome, immagine, foto; solo in `DRAFT`; l'email no).
+  - [DONE] Caricamento foto come `anon` solo in `<evento>/<uuid>.<ext>` di eventi in `DRAFT` (policy `photos_anon_insert`, niente lettura/sovrascrittura/cancellazione); la foto deve esistere, stare nella cartella dell'evento e non essere usata da altri.
+  - [DONE] Sezione "I tuoi dati" nella pagina `/p`; `deleteEvent` rimuove tutta la cartella dell'evento (anche le foto sostituite).
+- **Criteri di completamento:** modifica visibile all'admin; bloccata dopo l'estrazione (test di integrazione ed E2E).
+
+## TASK-032 — Foto di copertina dell'evento
+- **Stato:** DONE
+- **Dipendenze:** TASK-007
+- **Sotto-task:**
+  - [DONE] Colonna `cover_path` (`<evento>/cover-<id>.<ext>`, scrivibile solo dall'admin), esposta da `signup_info` e `participant_status`.
+  - [DONE] Riquadro admin "Foto di copertina" (carica/sostituisci/rimuovi, ridimensionamento a 1600 px) e copertina in cima a `/iscrizione` e `/p`.
+- **Criteri di completamento:** copertina visibile nelle pagine pubbliche; non utilizzabile come foto di un partecipante.
+
+## TASK-033 — Banner di citazioni sul donare
+- **Stato:** DONE
+- **Sotto-task:**
+  - [DONE] `src/lib/quotes.ts`: citazioni autentiche (con fonte) di politici, generali, avvocati e funzionari, anche cinesi; battute attribuite solo a personaggi dichiaratamente immaginari; commenti separati dal testo.
+  - [DONE] Banner con citazione casuale e pulsante "Un'altra citazione" su `/iscrizione` e `/p`.
+- **Criteri di completamento:** banner visibile su desktop e smartphone; il pulsante cambia sempre citazione (test unitario ed E2E).
+
+## TASK-034 — Nuova migrazione e deploy in produzione
+- **Stato:** BLOCKED
+- **Dipendenze:** TASK-030 … TASK-033
+- **Sotto-task:**
+  - [BLOCKED] Eseguire `supabase/migrations/20261023120000_signup_link.sql` nell'SQL Editor del progetto Supabase.
+  - [BLOCKED] `git push` su `main` (Vercel ridistribuisce) e prova di un'iscrizione sul sito pubblicato.
+- **Motivo del blocco:** richiede l'accesso dell'utente a Supabase e il push sul repository personale. La migrazione va eseguita **prima** del push, altrimenti la nuova versione del sito chiama funzioni che non esistono ancora.
 
 ---
 
@@ -325,3 +369,19 @@ Problemi trovati e corretti durante le verifiche:
 - Il `try/catch` di `getAdminStatus` intercettava l'errore interno di Next.js per il rendering dinamico → `unstable_rethrow`.
 - I form con `<form action>` di React 19 si svuotavano anche in caso di errore → componente `ActionForm` che conserva i valori.
 - Login con Supabase irraggiungibile/in pausa mostrava "password errata" → ora mostra "servizio non disponibile".
+
+## Registro delle verifiche (iscrizione con link, copertina, citazioni — 2026-10-23)
+
+| Verifica | Comando | Esito |
+| --- | --- | --- |
+| Lint | `npm run lint` | ✅ nessun problema |
+| Type-check | `npm run typecheck` | ✅ nessun errore |
+| Test unitari | `npm test` | ✅ 104/104 (22 nuovi in `tests/unit/signup.test.ts`) |
+| Test di integrazione | `npm run test:integration` | ✅ 28/28 (12 nuovi in `tests/integration/signup.test.ts`) |
+| Test E2E desktop + smartphone | `npm run test:e2e` | ✅ 12/12 (iscrizione completa con email Mailpit, profilo, copertina, citazioni, estrazione con coppia esclusa) |
+| Build di produzione | `npm run build` | ✅ |
+| Segreti nel bundle client | ricerca in `.next/static` | ✅ nessuna occorrenza |
+
+Problemi trovati e corretti:
+- Il pulsante "Controlla di nuovo" nella pagina d'attesa risultava bianco su bianco (classi `bg-white`/`text-white` in conflitto) → classi dedicate.
+- Dopo il salvataggio del profilo il form mostrava per un attimo il nome precedente → il form si chiude e si ricarica il profilo.

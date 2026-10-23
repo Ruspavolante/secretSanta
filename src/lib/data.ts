@@ -48,6 +48,9 @@ export type AdminEvent = {
   drawnAt: string | null;
   publishedAt: string | null;
   closedAt: string | null;
+  signupToken: string | null;
+  signupOpen: boolean;
+  coverUrl: string | null;
 };
 
 export type AdminParticipant = {
@@ -75,7 +78,7 @@ export type EventDetail = {
 async function loadEvent(supabase: SupabaseServerClient, eventId: string): Promise<AdminEvent | null> {
   const { data, error } = await supabase
     .from("events")
-    .select("id, name, description, budget, exchange_date, status, drawn_at, published_at, closed_at")
+    .select("id, name, description, budget, exchange_date, status, drawn_at, published_at, closed_at, signup_token, signup_open, cover_path")
     .eq("id", eventId)
     .maybeSingle();
   if (error) throw new DataError(error);
@@ -90,6 +93,9 @@ async function loadEvent(supabase: SupabaseServerClient, eventId: string): Promi
     drawnAt: data.drawn_at,
     publishedAt: data.published_at,
     closedAt: data.closed_at,
+    signupToken: data.signup_token,
+    signupOpen: data.signup_open,
+    coverUrl: photoPublicUrl(data.cover_path),
   };
 }
 

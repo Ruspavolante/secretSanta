@@ -23,6 +23,19 @@ test("smartphone: pagine pubbliche, area admin e rivelazione senza scroll orizzo
   await expectNoHorizontalScroll(page);
   await page.screenshot({ path: "test-results/screens/10-mobile-admin.png", fullPage: true });
 
+  // Pagina d'iscrizione dal link di gruppo
+  await page.getByRole("button", { name: /Apri le iscrizioni/ }).click();
+  const signupLink = await page.getByTestId("signup-panel").getByLabel("Link d'iscrizione").inputValue();
+  await expectNoHorizontalScroll(page);
+  const signupContext = await browser.newContext({ ...test.info().project.use });
+  const signupPage = await signupContext.newPage();
+  await signupPage.goto(signupLink);
+  await expect(signupPage.getByTestId("signup-form")).toBeVisible();
+  await expect(signupPage.getByTestId("quote-banner")).toBeVisible();
+  await expectNoHorizontalScroll(signupPage);
+  await signupPage.screenshot({ path: "test-results/screens/12-mobile-iscrizione.png", fullPage: true });
+  await signupContext.close();
+
   const link = await personalLink(page, `Alfa ${suffix}`);
   await clickAndConfirm(page, /Genera estrazione/, "Estrai ora");
   await page.getByRole("link", { name: /Verifica abbinamenti/ }).click();

@@ -161,6 +161,9 @@ export function Field({
 export const inputClasses =
   "w-full rounded-xl border border-pine-200 bg-white px-3.5 py-2.5 text-base text-ink shadow-inner placeholder:text-stone-400 focus:border-pine-500 focus:outline-none focus:ring-2 focus:ring-pine-500/30 disabled:bg-stone-100 sm:text-sm";
 
+export const fileInputClasses =
+  "block w-full text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-pine-100 file:px-4 file:py-2 file:font-semibold file:text-pine-800 hover:file:bg-pine-200";
+
 export function Snowfall({ flakes = 18 }: { flakes?: number }) {
   return (
     <div className="snowfall" aria-hidden="true">

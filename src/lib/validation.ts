@@ -79,6 +79,22 @@ export const participantSchema = z.object({
 
 export type ParticipantInput = z.output<typeof participantSchema>;
 
+/** Iscrizione dal link di gruppo: l'email è obbligatoria (serve per ricevere il link personale). */
+export const signupSchema = participantSchema.extend({
+  email: z
+    .string()
+    .trim()
+    .transform((value) => value.toLowerCase())
+    .pipe(
+      z
+        .email("Inserisci un indirizzo email valido: lì riceverai il tuo link personale.")
+        .max(LIMITS.email, "Indirizzo email troppo lungo."),
+    ),
+});
+
+/** Dati che il partecipante può modificare da solo dal proprio link (l'email no). */
+export const profileSchema = participantSchema.pick({ name: true, avatar: true });
+
 export const exclusionSchema = z
   .object({
     eventId: uuidSchema,

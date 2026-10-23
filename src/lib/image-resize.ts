@@ -1,3 +1,5 @@
+import { LIMITS } from "@/lib/validation";
+
 /**
  * Ridimensiona una foto nel browser prima del caricamento (max 800 px, JPEG):
  * file piccoli, caricamenti veloci e meno spazio occupato nel piano gratuito.
@@ -21,5 +23,28 @@ export async function resizeImage(file: File, maxSize = 800, quality = 0.85): Pr
     );
   } finally {
     bitmap.close();
+  }
+}
+
+/**
+ * Prepara un form con un campo "photo" per l'invio: ridimensiona la foto e
+ * mantiene gli altri campi. Una stringa è un messaggio d'errore per l'utente.
+ */
+export async function preparePhotoField(
+  formData: FormData,
+  { required, maxSize }: { required: boolean; maxSize?: number },
+): Promise<FormData | string> {
+  const file = formData.get("photo");
+  const prepared = new FormData();
+  for (const [key, value] of formData) if (key !== "photo") prepared.append(key, value);
+  if (!(file instanceof File) || file.size === 0) return required ? "Seleziona una fotografia." : prepared;
+  if (!file.type.startsWith("image/")) return "Il file selezionato non è un'immagine.";
+  try {
+    const resized = await resizeImage(file, maxSize);
+    if (resized.size > LIMITS.photoBytes) return "La fotografia è troppo grande anche dopo il ridimensionamento.";
+    prepared.set("photo", resized, "foto.jpg");
+    return prepared;
+  } catch {
+    return "Impossibile leggere questa immagine: prova con un file JPEG o PNG.";
   }
 }
