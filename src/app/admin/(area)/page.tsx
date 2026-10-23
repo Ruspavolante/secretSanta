@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EventForm } from "@/components/admin/event-form";
-import { Card, SectionTitle, StatusBadge } from "@/components/ui";
+import { Alert, Card, SectionTitle, StatusBadge } from "@/components/ui";
 import { createEvent } from "@/lib/actions/events";
 import { requireAdminPage } from "@/lib/auth";
 import { listEvents } from "@/lib/data";
@@ -9,7 +9,8 @@ import { formatItalianDate } from "@/lib/invite";
 
 export const metadata: Metadata = { title: "I tuoi eventi" };
 
-export default async function AdminHomePage() {
+export default async function AdminHomePage({ searchParams }: PageProps<"/admin">) {
+  const { password } = await searchParams;
   const { supabase } = await requireAdminPage();
   const events = await listEvents(supabase);
 
@@ -18,6 +19,13 @@ export default async function AdminHomePage() {
       <section>
         <h1 className="font-display text-3xl font-bold text-pine-900 sm:text-4xl">I tuoi Secret Santa</h1>
         <p className="mt-2 text-muted">Scegli un evento per gestire partecipanti, esclusioni ed estrazione.</p>
+        {password === "aggiornata" ? (
+          <div className="mt-4">
+            <Alert tone="success" title="Password aggiornata">
+              D&apos;ora in poi accedi con la nuova password.
+            </Alert>
+          </div>
+        ) : null}
 
         {events.length === 0 ? (
           <div className="mt-8 rounded-3xl border-2 border-dashed border-gold-300 bg-snow p-10 text-center">

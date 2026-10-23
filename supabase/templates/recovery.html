@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="it">
+  <body style="margin:0;background:#f7f3ea;font-family:Georgia,serif">
+    <div style="max-width:520px;margin:24px auto;background:#fffdf7;border-radius:16px;border:1px solid #e8d9a8;padding:28px">
+      <p style="font-size:40px;margin:0;text-align:center">🔑</p>
+      <h1 style="color:#14532d;text-align:center;font-size:22px">Reimposta la password</h1>
+      <p style="color:#1f2937;font-size:16px;line-height:1.5">
+        Qualcuno (speriamo tu) ha chiesto di reimpostare la password del tuo account Secret Santa ({{ .Email }}).
+      </p>
+      <p style="text-align:center;margin:28px 0">
+        <a
+          href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery"
+          style="background:#b91c1c;color:#fff;padding:14px 24px;border-radius:999px;text-decoration:none;font-weight:bold"
+          >Scegli una nuova password</a
+        >
+      </p>
+      <p style="color:#6b7280;font-size:13px">Il link vale per un'ora e si può usare una sola volta.</p>
+      <p style="color:#6b7280;font-size:13px">Se non l'hai chiesto tu, ignora questa email: la password resta quella di prima.</p>
+    </div>
+  </body>
+</html>

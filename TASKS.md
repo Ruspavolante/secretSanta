@@ -421,3 +421,12 @@ Problemi trovati e corretti:
   - [DONE] `vercel.json`: cron giornaliero alle 7:00 UTC (compatibile con il piano Hobby: al massimo una volta al giorno).
   - [DONE] Test unitari (`tests/unit/keepalive.test.ts`) e prova su build di produzione locale: `200 {"ok":true}`, `POST` → `405`.
 - **Da verificare dopo il deploy:** Vercel → Settings → Cron Jobs mostra `/api/keepalive`; facoltativo: impostare `CRON_SECRET`.
+
+## TASK-037 — Recupero password degli organizzatori
+- **Stato:** DONE in locale; in produzione richiede la configurazione email di Supabase (README → *Email di recupero password*)
+- **Sotto-task:**
+  - [DONE] `/admin/password-dimenticata`: richiesta con risposta identica per email registrate e non (`resetPasswordForEmail`); errori di invio e limiti di frequenza detti chiaramente.
+  - [DONE] `/auth/confirm`: accetta `token_hash` + `type=recovery` (modello consigliato, funziona su qualsiasi dispositivo) e `code` (modello predefinito, flusso PKCE); link non validi → richiesta di un nuovo link.
+  - [DONE] `/admin/nuova-password`: nuova password senza quella vecchia solo entro un'ora da un accesso via email (claim `amr` = `otp`/`recovery`); altrimenti rimanda alla pagina Account.
+  - [DONE] Modello email italiano `supabase/templates/recovery.html`; in locale redirect consentiti e limite email alzato.
+- **Verifiche:** unit 120/120 (5 nuovi), E2E `tests/e2e/password-reset.spec.ts` con email reale in Mailpit: risposta neutra, link, nuova password, vecchia password rifiutata, link non riutilizzabile.

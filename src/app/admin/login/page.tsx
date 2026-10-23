@@ -30,6 +30,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
           ) : null}
 
           <LoginForm />
+          <p className="text-center text-sm">
+            <Link href="/admin/password-dimenticata" className="font-medium text-pine-700 underline-offset-4 hover:underline">
+              Password dimenticata?
+            </Link>
+          </p>
         </div>
 
         <p className="mt-6 text-center text-sm text-muted">

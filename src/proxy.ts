@@ -27,8 +27,8 @@ export async function proxy(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getClaims();
-  // Pagine raggiungibili senza account: accesso e creazione di un nuovo account.
-  const isPublicPage = ["/admin/login", "/admin/registrati"].includes(request.nextUrl.pathname);
+  // Pagine raggiungibili senza account: accesso, creazione di un account e recupero password.
+  const isPublicPage = ["/admin/login", "/admin/registrati", "/admin/password-dimenticata"].includes(request.nextUrl.pathname);
 
   if (!data?.claims && !isPublicPage) {
     const loginUrl = request.nextUrl.clone();

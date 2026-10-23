@@ -7,11 +7,17 @@ vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ requireAdminAction: vi.fn() }));
+vi.mock("@/lib/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/auth")>()),
+  requireAdminAction: vi.fn(),
+}));
+vi.mock("@/lib/site", () => ({ getBaseUrl: vi.fn(async () => "https://santa.test") }));
 
-import { changePassword, deleteAccount } from "@/lib/actions/account";
+import { NextRequest } from "next/server";
+import { GET as confirmLink } from "@/app/auth/confirm/route";
+import { changePassword, deleteAccount, requestPasswordReset, setNewPassword } from "@/lib/actions/account";
 import { registerOrganizer } from "@/lib/actions/auth";
-import { requireAdminAction } from "@/lib/auth";
+import { isRecentRecovery, requireAdminAction } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function form(values: Record<string, string>) {
@@ -139,5 +145,80 @@ describe("account dell'organizzatore", () => {
     vi.mocked(requireAdminAction).mockResolvedValue({ ok: false, error: "Sessione scaduta: accedi di nuovo." });
     expect(await changePassword(null, form(passwords))).toEqual({ ok: false, error: "Sessione scaduta: accedi di nuovo." });
     expect(await deleteAccount(null, form({ confirmation: EMAIL }))).toEqual({ ok: false, error: "Sessione scaduta: accedi di nuovo." });
+  });
+});
+
+describe("recupero password", () => {
+  function mockReset(error: unknown = null) {
+    const resetPasswordForEmail = vi.fn(async () => ({ data: {}, error }));
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ auth: { resetPasswordForEmail } } as never);
+    return resetPasswordForEmail;
+  }
+
+  it("risponde allo stesso modo che l'account esista o no e usa il link del sito", async () => {
+    const reset = mockReset();
+    expect(await requestPasswordReset(null, form({ email: " Chiunque@Example.com " }))).toEqual({
+      ok: true,
+      message: expect.stringContaining("Se esiste un account con chiunque@example.com"),
+    });
+    expect(reset).toHaveBeenCalledWith("chiunque@example.com", { redirectTo: "https://santa.test/auth/confirm" });
+  });
+
+  it("email non valida: nessuna richiesta; errori di invio detti chiaramente", async () => {
+    let reset = mockReset();
+    expect(await requestPasswordReset(null, form({ email: "x" }))).toMatchObject({ ok: false });
+    expect(reset).not.toHaveBeenCalled();
+
+    reset = mockReset({ status: 429, message: "rate limit" });
+    expect(await requestPasswordReset(null, form({ email: EMAIL }))).toMatchObject({ ok: false, error: expect.stringContaining("Troppe richieste") });
+    mockReset({ status: 500, message: "Error sending recovery email" });
+    expect(await requestPasswordReset(null, form({ email: EMAIL }))).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("Non siamo riusciti a inviare"),
+    });
+  });
+
+  it("la nuova password si imposta solo entro un'ora dal link", async () => {
+    const now = Date.now() / 1000;
+    expect(isRecentRecovery({ recoveryAt: now - 60 })).toBe(true);
+    expect(isRecentRecovery({ recoveryAt: now - 2 * 3600 })).toBe(false);
+    expect(isRecentRecovery({ recoveryAt: null })).toBe(false);
+    expect(isRecentRecovery({})).toBe(false);
+  });
+
+  it("setNewPassword: rifiuta sessioni normali, valida e aggiorna", async () => {
+    const updateUser = vi.fn(async () => ({ data: {}, error: null }));
+    const context = (recoveryAt: number | null) => ({
+      ok: true as const,
+      context: { supabase: { auth: { updateUser } } as never, userId: "u", email: EMAIL, recoveryAt },
+    });
+    const values = { password: "nuova-password", confirm: "nuova-password" };
+
+    vi.mocked(requireAdminAction).mockResolvedValue(context(null));
+    expect(await setNewPassword(null, form(values))).toMatchObject({ ok: false, error: expect.stringContaining("scaduto") });
+
+    vi.mocked(requireAdminAction).mockResolvedValue(context(Date.now() / 1000));
+    expect(await setNewPassword(null, form({ ...values, confirm: "diversa-123" }))).toMatchObject({ ok: false });
+    expect(updateUser).not.toHaveBeenCalled();
+    await expect(setNewPassword(null, form(values))).rejects.toThrow("REDIRECT:/admin?password=aggiornata");
+    expect(updateUser).toHaveBeenCalledWith({ password: "nuova-password" });
+  });
+
+  it("il link dell'email apre la sessione e porta alla nuova password; se non vale torna alla richiesta", async () => {
+    const verifyOtp = vi.fn(async () => ({ data: {}, error: null as unknown }));
+    const exchangeCodeForSession = vi.fn(async () => ({ data: {}, error: null as unknown }));
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ auth: { verifyOtp, exchangeCodeForSession } } as never);
+    const open = async (query: string) => (await confirmLink(new NextRequest(`https://santa.test/auth/confirm${query}`))).headers.get("location");
+
+    expect(await open("?token_hash=abc&type=recovery")).toBe("https://santa.test/admin/nuova-password");
+    expect(verifyOtp).toHaveBeenCalledWith({ type: "recovery", token_hash: "abc" });
+    expect(await open("?code=xyz")).toBe("https://santa.test/admin/nuova-password");
+    expect(exchangeCodeForSession).toHaveBeenCalledWith("xyz");
+
+    // Tipi diversi dal recupero o link incompleti non aprono sessioni
+    expect(await open("?token_hash=abc&type=signup")).toBe("https://santa.test/admin/password-dimenticata?errore=link");
+    expect(await open("")).toBe("https://santa.test/admin/password-dimenticata?errore=link");
+    verifyOtp.mockResolvedValueOnce({ data: {}, error: { message: "Token has expired or is invalid" } });
+    expect(await open("?token_hash=vecchio&type=recovery")).toBe("https://santa.test/admin/password-dimenticata?errore=link");
   });
 });

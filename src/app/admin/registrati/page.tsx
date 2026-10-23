@@ -26,9 +26,6 @@ export default async function RegisterPage() {
           <RegisterForm />
         </div>
 
-        <p className="mt-4 text-center text-xs text-muted">
-          Conserva bene la password: per ora non c&apos;è il recupero via email.
-        </p>
         <p className="mt-6 text-center text-sm text-muted">
           Hai già un account?{" "}
           <Link href="/admin/login" className="font-semibold text-pine-700 underline-offset-4 hover:underline">

@@ -6,7 +6,33 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
-export type AdminContext = { supabase: SupabaseServerClient; userId: string; email: string | null };
+export type AdminContext = {
+  supabase: SupabaseServerClient;
+  userId: string;
+  email: string | null;
+  /** Secondi epoch dell'accesso tramite link ricevuto per email (null se l'accesso è con password). */
+  recoveryAt?: number | null;
+};
+
+/** Il link di recupero autorizza a scegliere una nuova password solo per un'ora. */
+export const RECOVERY_WINDOW_SECONDS = 60 * 60;
+
+export function isRecentRecovery(context: Pick<AdminContext, "recoveryAt">, now = Date.now()): boolean {
+  return typeof context.recoveryAt === "number" && now / 1000 - context.recoveryAt <= RECOVERY_WINDOW_SECONDS;
+}
+
+// Metodi di accesso (claim "amr" del JWT) che dimostrano il possesso della casella email:
+// "otp" per il link con token_hash (verifyOtp), "recovery" per il flusso PKCE con codice.
+const EMAIL_PROOF_METHODS = new Set(["otp", "recovery"]);
+
+function recoveryTimestamp(amr: unknown): number | null {
+  if (!Array.isArray(amr)) return null;
+  const entry = amr.find(
+    (item) => item && typeof item === "object" && EMAIL_PROOF_METHODS.has(String((item as { method?: unknown }).method)),
+  );
+  const timestamp = entry ? (entry as { timestamp?: unknown }).timestamp : null;
+  return typeof timestamp === "number" ? timestamp : null;
+}
 
 export type AdminStatus = { status: "admin"; context: AdminContext } | { status: "anonymous" } | { status: "error" };
 
@@ -30,7 +56,8 @@ export const getAdminStatus = cache(async (): Promise<AdminStatus> => {
 
   const userId = data.claims.sub;
   const email = typeof data.claims.email === "string" ? data.claims.email : null;
-  return { status: "admin", context: { supabase, userId, email } };
+  const recoveryAt = recoveryTimestamp((data.claims as { amr?: unknown }).amr);
+  return { status: "admin", context: { supabase, userId, email, recoveryAt } };
 });
 
 /** Per le pagine dell'area organizzatore: reindirizza al login se l'utente non è autenticato. */

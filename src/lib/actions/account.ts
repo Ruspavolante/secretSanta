@@ -4,8 +4,10 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import type { ActionResult } from "@/lib/actions/result";
 import { formText } from "@/lib/actions/result";
-import { requireAdminAction } from "@/lib/auth";
+import { isRecentRecovery, requireAdminAction } from "@/lib/auth";
 import { authErrorMessage, dbErrorMessage, logServerError } from "@/lib/errors";
+import { getBaseUrl } from "@/lib/site";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { passwordSchema } from "@/lib/validation";
 
 const changePasswordSchema = z
@@ -84,4 +86,60 @@ export async function deleteAccount(_previous: ActionResult | null, formData: Fo
     logServerError("deleteAccount: logout", signOutError);
   }
   redirect("/?account=eliminato");
+}
+
+const resetRequestSchema = z.object({ email: z.email("Inserisci un indirizzo email valido.").max(254) });
+
+/**
+ * Invia (tramite Supabase Auth) l'email con il link per scegliere una nuova password.
+ * La risposta è la stessa che l'account esista o no: non rivela quali email sono registrate.
+ */
+export async function requestPasswordReset(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const parsed = resetRequestSchema.safeParse({ email: formText(formData, "email").trim().toLowerCase() });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+  let supabase;
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch (error) {
+    unstable_rethrow(error);
+    logServerError("recupero password: configurazione", error);
+    return { ok: false, error: "Il servizio non è configurato correttamente. Contatta chi gestisce il sito." };
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${await getBaseUrl()}/auth/confirm`,
+  });
+  if (error) {
+    if (error.status === 429) return { ok: false, error: "Troppe richieste. Attendi qualche minuto e riprova." };
+    logServerError("recupero password", error);
+    return {
+      ok: false,
+      error: "Non siamo riusciti a inviare l'email di recupero. Riprova più tardi o contatta chi gestisce il sito.",
+    };
+  }
+  return {
+    ok: true,
+    message: `Se esiste un account con ${parsed.data.email}, ti abbiamo inviato un'email con il link per scegliere una nuova password (controlla anche lo spam). Il link vale un'ora.`,
+  };
+}
+
+const newPasswordSchema = z
+  .object({ password: passwordSchema, confirm: z.string() })
+  .refine((value) => value.password === value.confirm, { message: "Le due password non coincidono.", path: ["confirm"] });
+
+/** Nuova password dopo aver aperto il link di recupero (senza chiedere quella vecchia). */
+export async function setNewPassword(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const auth = await requireAdminAction();
+  if (!auth.ok) return auth;
+  if (!isRecentRecovery(auth.context)) {
+    return { ok: false, error: "Il link di recupero è scaduto: richiedine uno nuovo oppure cambia la password dalla pagina Account." };
+  }
+
+  const parsed = newPasswordSchema.safeParse({ password: formText(formData, "password"), confirm: formText(formData, "confirm") });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+  const { error } = await auth.context.supabase.auth.updateUser({ password: parsed.data.password });
+  if (error) return { ok: false, error: authErrorMessage(error, "nuova password") };
+  redirect("/admin?password=aggiornata");
 }

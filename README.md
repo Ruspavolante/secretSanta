@@ -179,8 +179,25 @@ Le email inviate in locale si leggono in Mailpit: <http://127.0.0.1:54324>.
 
 - Chiunque crea il proprio account da `https://<tuo-sito>/admin/registrati` (link anche dalla home e dal login) e vede
   solo i propri eventi. Non serve più aggiungere nessuno alla tabella `admins` (resta solo per compatibilità).
-- **Password dimenticata:** non c'è il recupero via email. Chi gestisce il progetto Supabase può reimpostarla da
-  Authentication → Users → (utente) → *Reset password* / *Send password recovery* oppure eliminare l'utente.
+- **Password dimenticata:** dal login → *Password dimenticata?* → arriva un'email con un link valido un'ora (usabile una
+  sola volta) che porta a *Scegli una nuova password*. La risposta è la stessa che l'email sia registrata o no.
+  Per funzionare online richiede la configurazione email di Supabase descritta sotto.
+
+### Email di recupero password (Supabase)
+
+Le email di Supabase Auth partono da Supabase, non dall'app. Il mittente predefinito di Supabase scrive **solo ai membri
+del progetto**, quindi per gli altri organizzatori serve un SMTP proprio (può essere lo stesso Gmail dell'invio inviti):
+
+1. **Authentication → Emails → SMTP Settings** → *Enable custom SMTP*: host `smtp.gmail.com`, porta `465`, utente e
+   mittente = il tuo indirizzo Gmail, password = la *password per le app*, nome mittente `Secret Santa`.
+2. **Authentication → URL Configuration**: *Site URL* = l'URL del sito (es. `https://secret-santa-xxx.vercel.app`);
+   in *Redirect URLs* aggiungi `https://secret-santa-xxx.vercel.app/auth/confirm`.
+3. **Authentication → Emails → Templates → Reset password** (consigliato): oggetto
+   `Reimposta la password del tuo Secret Santa` e come corpo il contenuto di `supabase/templates/recovery.html`.
+   Con questo modello il link funziona anche aprendo l'email da un altro dispositivo; con il modello predefinito di
+   Supabase funziona solo nello stesso browser in cui è stato chiesto il recupero.
+
+In locale tutto è già configurato in `supabase/config.toml` e le email arrivano in Mailpit (`http://127.0.0.1:54324`).
 - **Cambio password ed eliminazione dell'account:** dalla pagina *Account* dell'area organizzatore. Eliminando l'account
   si cancellano anche tutti i suoi eventi e le foto.
 - Gli eventi creati prima dell'introduzione degli account restano del primo utente presente nella tabella `admins`.
