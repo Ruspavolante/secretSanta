@@ -49,7 +49,7 @@ export type SignupDetails = Omit<InviteDetails, "participantName">;
 export function buildSignupMessage(details: SignupDetails): string {
   const intro =
     `Ciao a tutti! 🎅 Quest'anno facciamo il Secret Santa "${details.eventName}". ` +
-    `Iscriviti da qui con il tuo nome, la tua email e, se vuoi, una foto: ${details.link}`;
+    `Clicca qui per partecipare ohohoh: ${details.link}`;
   const extra = extraLines({ ...details, participantName: "" });
   const footer =
     "Dopo l'iscrizione riceverai per email il tuo link personale: lì scoprirai a chi fare il regalo quando sarà il momento. 🎁";
