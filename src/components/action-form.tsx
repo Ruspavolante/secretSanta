@@ -57,7 +57,7 @@ export function ActionForm({
         }
       } catch (error) {
         if (isNextRedirect(error)) throw error;
-        setResult({ ok: false, error: "Operazione non riuscita: controlla la connessione e riprova." });
+        setResult({ ok: false, error: "Operazione non riuscita: ricarica la pagina (F5) e riprova." });
       }
     });
   };

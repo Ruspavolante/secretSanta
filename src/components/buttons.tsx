@@ -143,7 +143,7 @@ export function ActionButton({
       } catch (error) {
         // I redirect di Next.js devono propagarsi.
         if (isNextRedirect(error)) throw error;
-        toast.error("Operazione non riuscita: controlla la connessione e riprova.");
+        toast.error("Operazione non riuscita: ricarica la pagina (F5) e riprova.");
       }
     });
   };
