@@ -2,7 +2,7 @@
 
 import { buttonClasses } from "@/components/ui";
 
-export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-4 py-24 text-center">
       <p className="text-6xl" aria-hidden="true">
@@ -16,6 +16,12 @@ export default function ErrorPage({ reset }: { error: Error & { digest?: string 
         Sei l&apos;organizzatore? Con il piano gratuito il progetto Supabase va in pausa dopo una settimana di
         inattività: riattivalo dalla dashboard di Supabase.
       </p>
+      {error.digest ? (
+        // Lo stesso codice compare nei log del server (Vercel → Logs) accanto al motivo dell'errore.
+        <p className="mt-4 text-xs text-muted">
+          Codice errore: <code className="font-mono">{error.digest}</code>
+        </p>
+      ) : null}
       <button type="button" onClick={reset} className={`${buttonClasses("secondary")} mt-8`}>
         Riprova
       </button>

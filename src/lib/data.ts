@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseServerClient } from "@/lib/auth";
 import { checkFeasibility, describeProblem } from "@/lib/draw/algorithm";
 import { photoPublicUrl } from "@/lib/env";
+import { logServerError } from "@/lib/errors";
 import type { Database } from "@/lib/supabase/database.types";
 
 /** Letture per le pagine admin. Tutte passano per RLS con la sessione dell'admin. */
@@ -12,6 +13,8 @@ export class DataError extends Error {
   constructor(public readonly cause: unknown) {
     super("Errore nel caricamento dei dati");
     this.name = "DataError";
+    // Nei log del server (Vercel → Logs) resta il motivo reale: codice e messaggio del database.
+    logServerError("caricamento dati", cause);
   }
 }
 
