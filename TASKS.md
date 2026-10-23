@@ -413,3 +413,11 @@ Problemi trovati e corretti:
 Problemi trovati e corretti:
 - Il limite di 20 eventi faceva fallire i test che creavano tutto con lo stesso account → ogni test registra un organizzatore nuovo.
 - Nei test E2E il login partiva prima che il logout fosse completato → attesa esplicita del reindirizzamento.
+
+## TASK-036 — Battito anti-pausa di Supabase
+- **Stato:** DONE (attivazione in produzione con il prossimo deploy)
+- **Sotto-task:**
+  - [DONE] Route `/api/keepalive` (GET): una query sul database tramite `signup_info` con token inesistente; nessun dato restituito; `401` se `CRON_SECRET` è impostata e non corrisponde; `503` se il database non risponde.
+  - [DONE] `vercel.json`: cron giornaliero alle 7:00 UTC (compatibile con il piano Hobby: al massimo una volta al giorno).
+  - [DONE] Test unitari (`tests/unit/keepalive.test.ts`) e prova su build di produzione locale: `200 {"ok":true}`, `POST` → `405`.
+- **Da verificare dopo il deploy:** Vercel → Settings → Cron Jobs mostra `/api/keepalive`; facoltativo: impostare `CRON_SECRET`.

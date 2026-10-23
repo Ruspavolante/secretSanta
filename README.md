@@ -226,6 +226,7 @@ Vedi [`.env.example`](.env.example).
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | sì | Chiave pubblica (publishable o anon legacy) |
 | `NEXT_PUBLIC_SITE_URL` | consigliata | URL pubblico usato nei link personali |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | no | Invio automatico delle email. Senza `SMTP_HOST` e `SMTP_FROM` l'invio automatico è disattivato |
+| `CRON_SECRET` | consigliata | Stringa casuale lunga (es. 32+ caratteri). Vercel la invia al cron e `/api/keepalive` accetta solo quelle chiamate. Senza, l'endpoint resta pubblico (è innocuo: esegue solo una query vuota) |
 
 ---
 
@@ -298,8 +299,10 @@ Verificati a ottobre 2026 sulle pagine ufficiali ([Supabase pricing](https://sup
 - Massimo **2 progetti attivi** gratuiti.
 - ⏸️ **Il progetto va in pausa dopo 1 settimana di inattività.** I dati restano, ma l'app smette di funzionare
   (login e link mostrano "servizio non disponibile") finché non lo riattivi da Supabase Dashboard → *Restore project*.
-  Consiglio: riattivalo qualche giorno prima di inviare gli inviti e accedi all'area admin almeno una volta a settimana
-  durante il periodo dell'evento.
+  **Prevenzione automatica:** `vercel.json` programma un cron di Vercel che ogni giorno alle 7:00 UTC chiama
+  `/api/keepalive`, che esegue una query sul database (senza leggere dati): così il progetto non resta mai una
+  settimana senza attività. I cron girano solo sul deploy di **produzione**; si controllano in Vercel → progetto →
+  *Settings → Cron Jobs*. Se il progetto fosse già in pausa il cron non lo riattiva: va ripristinato a mano.
 
 **Vercel Hobby**
 
